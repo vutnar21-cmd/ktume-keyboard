@@ -1,0 +1,13 @@
+# Единые переводы строк: в репозитории LF, в рабочей копии — как принято на платформе.
+* text=auto eol=lf
+
+# Windows-скрипты должны остаться с CRLF
+*.bat text eol=crlf
+*.cmd text eol=crlf
+
+# Бинарные файлы — без нормализации
+*.jar binary
+*.ttf binary
+*.png binary
+*.jpg binary
+*.apk binary

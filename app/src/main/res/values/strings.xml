@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Кӗске</string>
+    <string name="ime_name">Кӗске</string>
+    <string name="subtype_chuvash">Чӑвашла</string>
+    <string name="subtype_russian">Русская</string>
+    <string name="subtype_latin">Latina</string>
+    <string name="subtype_greek">Ελληνικά</string>
+</resources>

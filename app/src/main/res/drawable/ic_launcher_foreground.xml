@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Векторный передний план адаптивной иконки (мягкая клавиша с солнечной розеткой кӗскӗ) -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- Корпус клавиши -->
+    <path
+        android:fillColor="#FDF8EE"
+        android:pathData="M34,26h40c4.4,0 8,3.6 8,8v40c0,4.4 -3.6,8 -8,8H34c-4.4,0 -8,-3.6 -8,-8V34C26,29.6 29.6,26 34,26z" />
+    <!-- Чувашский солнечный ромб кӗскӗ в центре -->
+    <path
+        android:fillColor="#B86B35"
+        android:pathData="M54,36 L72,54 L54,72 L36,54 Z" />
+    <path
+        android:fillColor="#FDF8EE"
+        android:pathData="M54,43 L65,54 L54,65 L43,54 Z" />
+    <path
+        android:fillColor="#B86B35"
+        android:pathData="M54,48 L60,54 L54,60 L48,54 Z" />
+</vector>
