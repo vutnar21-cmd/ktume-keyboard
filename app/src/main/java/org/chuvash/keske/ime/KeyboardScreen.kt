@@ -193,7 +193,7 @@ fun KeyboardScreen(
                     val needed = if (idx == activeRows.lastIndex) r.size + 2 else r.size
                     cols = max(cols, needed)
                 }
-                if (prefs.showNumberRow && keyboardMode == KeyboardMode.LETTERS) {
+                if (prefs.showNumberRow) {
                     cols = max(cols, 10)
                 }
                 cols
@@ -372,13 +372,14 @@ fun KeyboardScreen(
                             }
                         )
                     } else {
-                        // Опциональный цифровой ряд сверху
-                        if (prefs.showNumberRow && keyboardMode == KeyboardMode.LETTERS) {
+                        // Общий верхний ряд цифр: одинаков на буквенной странице и на страницах
+                        // символов, поэтому высота клавиатуры не меняется при переключении ?123 / =\<
+                        if (prefs.showNumberRow) {
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.spacedBy(gap)
                             ) {
-                                listOf("1", "2", "3", "4", "5", "6", "7", "8", "9", "0").forEachIndexed { idx, num ->
+                                KeyboardLayouts.numberRow.forEachIndexed { idx, num ->
                                     val numVariants = KeyboardLayouts.getLongPressVariants(currentLang, num, false)
                                     KeyButton(
                                         label = num,

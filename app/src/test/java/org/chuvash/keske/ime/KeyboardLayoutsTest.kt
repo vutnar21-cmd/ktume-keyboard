@@ -132,10 +132,29 @@ class KeyboardLayoutsTest {
 
         val flat1 = KeyboardLayouts.symbolsLayer1.flatten()
         listOf(
-            "1", "0", "@", "#", "$", "_", "&", "-", "+", "(", ")", "/",
+            "%", "^", "~", "`", "|", "\\", "{", "}", "[", "]",
+            "@", "#", "$", "_", "&", "-", "+", "(", ")", "/",
             "*", "\"", "'", ":", ";", "!", "?"
         ).forEach { symbol ->
             assertTrue("Missing '$symbol' on symbolsLayer1", symbol in flat1)
+        }
+    }
+
+    @Test
+    fun numberRow_isSharedAcrossPagesAndAbsentFromSymbolPages() {
+        assertEquals(10, KeyboardLayouts.numberRow.size)
+        assertEquals(
+            listOf("1", "2", "3", "4", "5", "6", "7", "8", "9", "0"),
+            KeyboardLayouts.numberRow
+        )
+
+        // Цифры живут только в общем верхнем ряду: на страницах символов их быть не должно,
+        // иначе ряд дублировался бы и высота страницы расходилась с буквенной.
+        val digits = KeyboardLayouts.numberRow.toSet()
+        listOf(KeyboardLayouts.symbolsLayer1, KeyboardLayouts.symbolsLayer2).forEach { page ->
+            page.flatten().forEach { symbol ->
+                assertTrue("Digit '$symbol' must not appear on symbol pages", symbol !in digits)
+            }
         }
     }
 
