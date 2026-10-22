@@ -28,6 +28,7 @@ data class KeyboardPreferences(
     val doubleSpaceComma: Boolean = true, // Двойной пробел ставит запятую ", "
     val showHyphenKey: Boolean = true,    // Отдельная клавиша дефиса "-" на главной странице + свайп влево от точки
     val showParticlesStrip: Boolean = true, // Лента чувашских частиц и аффиксов включена по умолчанию
+    val experimentalCapitalizeNames: Boolean = false, // Эксперимент: автозаглавные имена собственные
     val customRowsByLang: Map<KeyboardLang, List<List<String>>> = mapOf(
         KeyboardLang.CHUVASH to KeyboardLayouts.getDefaultRows(KeyboardLang.CHUVASH, ChuvashLayoutPreset.BALANCED_26),
         KeyboardLang.RUSSIAN to KeyboardLayouts.getDefaultRows(KeyboardLang.RUSSIAN),

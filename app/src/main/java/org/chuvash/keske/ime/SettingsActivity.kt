@@ -45,6 +45,7 @@ private enum class SettingsTab(val title: String) {
     LAYOUT("Раскладка"),
     APPEARANCE("Оформление"),
     INPUT("Ввод"),
+    EXPERIMENTS("Эксперименты"),
     SYSTEM("Система")
 }
 
@@ -475,6 +476,29 @@ class SettingsActivity : ComponentActivity() {
                                     value = prefs.longPressDelayMs.toFloat(),
                                     range = 140f..400f,
                                     onValueChange = { savePrefs(prefs.copy(longPressDelayMs = it.roundToInt())) }
+                                )
+                            }
+                        }
+
+                        if (selectedTab == SettingsTab.EXPERIMENTS) {
+                            SettingsSectionCard(
+                                title = "Экспериментальные функции",
+                                palette = activePalette
+                            ) {
+                                Text(
+                                    text = "Функции в разработке: могут вести себя непредсказуемо. " +
+                                        "Включайте по одной, чтобы понять, что именно сломалось.",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = activePalette.hintText
+                                )
+                                SettingToggleRow(
+                                    title = "Автозаглавные имена собственные",
+                                    subtitle = "Если набрать имя со строчной буквы (например, «иван») " +
+                                        "и поставить пробел, первая буква станет заглавной. " +
+                                        "Работает по базовому списку имён.",
+                                    checked = prefs.experimentalCapitalizeNames,
+                                    palette = activePalette,
+                                    onCheckedChange = { savePrefs(prefs.copy(experimentalCapitalizeNames = it)) }
                                 )
                             }
                         }

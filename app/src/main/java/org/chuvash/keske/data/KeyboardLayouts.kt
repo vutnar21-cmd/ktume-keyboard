@@ -308,26 +308,14 @@ object KeyboardLayouts {
     }
 
     /**
-     * Подбор чувашских частиц и гармонирующих аффиксов по закону сингармонизма:
-     * - если в текущем слове преобладают гласные переднего (мягкого) ряда (е, ӗ, ӳ, и, я, ю, э),
-     *   предлагаются мягкие аффиксы (-сем, -ре, -пе, -тен, -е, -че) + частицы (-и?, -ши?, -ха, -ҫкӗ);
-     * - иначе предлагаются твёрдые аффиксы (-сем, -ра, -па, -тан, -а, -чӗ) + частицы.
+     * Лента частиц и аффиксов для текущего слова.
+     *
+     * Логика вынесена в [MorphemeEngine]: там сингармонизм, правила стыка и сам словарь
+     * морфем ([ChuvashMorphemes]). Здесь остаётся только точка входа для UI, чтобы
+     * список морфем можно было править без изменения этого файла.
      */
-    fun getSynharmonicParticlesAndAffixes(currentWord: String): List<String> {
-        val lower = currentWord.lowercase()
-        val softVowels = setOf('е', 'ӗ', 'ӳ', 'и', 'я', 'ю', 'э')
-        val hardVowels = setOf('а', 'ӑ', 'у', 'ы', 'о')
-        val lastVowel = lower.lastOrNull { it in softVowels || it in hardVowels }
-        val isSoft = lastVowel != null && lastVowel in softVowels
-
-        return if (currentWord.isBlank()) {
-            listOf("-и?", "-ши?", "-ха", "-ҫкӗ", "-сем", "-па", "-ра")
-        } else if (isSoft) {
-            listOf("-и?", "-ши?", "-ха", "-ҫкӗ", "сем", "ре", "пе", "тен")
-        } else {
-            listOf("-и?", "-ши?", "-ха", "-ҫкӗ", "сем", "ра", "па", "тан")
-        }
-    }
+    fun getSynharmonicParticlesAndAffixes(currentWord: String): List<String> =
+        MorphemeEngine.suggestions(currentWord)
 
     /**
      * Полный пул букв для добавления клавиши в ряд при кастомизации

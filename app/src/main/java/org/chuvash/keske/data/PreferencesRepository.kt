@@ -70,6 +70,7 @@ object PreferencesRepository {
     private val KEY_DOUBLE_SPACE_COMMA = booleanPreferencesKey("double_space_comma")
     private val KEY_SHOW_HYPHEN = booleanPreferencesKey("show_hyphen_key")
     private val KEY_PARTICLES = booleanPreferencesKey("show_particles_v5")
+    private val KEY_EXP_CAP_NAMES = booleanPreferencesKey("exp_capitalize_names_v1")
 
     private fun rowsKey(lang: KeyboardLang) = stringPreferencesKey("custom_rows_v3_${lang.code}")
 
@@ -124,6 +125,7 @@ object PreferencesRepository {
                     doubleSpaceComma = p[KEY_DOUBLE_SPACE_COMMA] ?: true,
                     showHyphenKey = p[KEY_SHOW_HYPHEN] ?: true,
                     showParticlesStrip = p[KEY_PARTICLES] ?: true,
+                    experimentalCapitalizeNames = p[KEY_EXP_CAP_NAMES] ?: false,
                     customRowsByLang = customMap
                 )
                 if (!hasPendingUserUpdate) {
@@ -167,6 +169,7 @@ object PreferencesRepository {
                     p[KEY_DOUBLE_SPACE_COMMA] = updated.doubleSpaceComma
                     p[KEY_SHOW_HYPHEN] = updated.showHyphenKey
                     p[KEY_PARTICLES] = updated.showParticlesStrip
+                    p[KEY_EXP_CAP_NAMES] = updated.experimentalCapitalizeNames
                     updated.customRowsByLang.forEach { (lang, rows) ->
                         p[rowsKey(lang)] = serializeRows(rows)
                     }

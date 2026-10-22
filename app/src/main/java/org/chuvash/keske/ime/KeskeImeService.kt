@@ -12,6 +12,7 @@ import android.os.VibratorManager
 import android.view.KeyEvent
 import android.view.View
 import android.view.inputmethod.EditorInfo
+import android.view.inputmethod.InputConnection
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.platform.ComposeView
@@ -68,6 +69,19 @@ class KeskeImeService : InputMethodService(), LifecycleOwner, ViewModelStoreOwne
         val before = currentInputConnection?.getTextBeforeCursor(64, 0)?.toString().orEmpty()
         PreferencesState.isFieldEmpty.value = before.isEmpty() || before.endsWith("\n")
         PreferencesState.currentWord.value = KeyboardLayouts.extractCurrentWordBeforeCursor(before)
+    }
+
+    /**
+     * Эксперимент «автозаглавные имена собственные»: если перед курсором набрано имя
+     * со строчной буквы, заменяет первую букву на заглавную. Вызывается перед вставкой
+     * пробела, поэтому срабатывает ровно по завершении слова.
+     */
+    private fun capitalizeNameBeforeCursor(ic: InputConnection) {
+        val before = ic.getTextBeforeCursor(64, 0)?.toString().orEmpty()
+        val word = KeyboardLayouts.extractCurrentWordBeforeCursor(before)
+        val fixed = ChuvashNames.capitalizeIfName(word) ?: return
+        ic.deleteSurroundingText(word.length, 0)
+        ic.commitText(fixed, 1)
     }
 
     private fun triggerFeedback(prefs: KeyboardPreferences) {
@@ -127,7 +141,12 @@ class KeskeImeService : InputMethodService(), LifecycleOwner, ViewModelStoreOwne
                 },
                 onCommitText = { text ->
                     triggerFeedback(prefs)
-                    currentInputConnection?.commitText(text, 1)
+                    val ic = currentInputConnection
+                    // Эксперимент: имя, набранное со строчной, получает заглавную перед пробелом
+                    if (ic != null && text == " " && prefs.experimentalCapitalizeNames) {
+                        capitalizeNameBeforeCursor(ic)
+                    }
+                    ic?.commitText(text, 1)
                     updateEditorContextState()
                 },
                 onReplaceSpaceWithComma = {
