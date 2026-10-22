@@ -43,4 +43,59 @@ created: 2026-10-22
 
 ## Отчёты
 
-_Пока нет._
+### 2026-10-22 · 85 % · статус `in-progress`
+
+Рефакторинг выполнен в три захода, каждый — отдельный коммит с зелёной сборкой.
+
+**Шаг 1 (`f07e863`) — развязан цикл `ui.theme ⇄ ime`:**
+
+- `KeyboardLayouts.kt` перенесён в пакет `data` — раскладки, слои, эмодзи и Long-Press
+  это данные, а не UI.
+- `KeyboardPreferences` вынесен в `data/KeyboardPreferences.kt`.
+- `PreferencesState` + `PreferencesRepository` в `data/PreferencesRepository.kt`.
+  Состояние больше не живёт в `companion object` сервиса: `PreferencesState.preferences`,
+  `.isFieldEmpty`, `.currentWord`.
+- `ui/theme` теперь зависит только от `R` (шрифт и палитры). Обратной зависимости нет.
+
+**Шаг 2 (`f1ae4a3`) — `KeyboardScreen` разбит:**
+
+| Файл | Строк | Что внутри |
+|---|---|---|
+| `KeyboardScreen.kt` | 611 | состояние, режимы, сборка экрана |
+| `Keys.kt` | 593 | KeyButton, Backspace, Special, Spacebar |
+| `Toolbar.kt` | 234 | верхняя полоса, буфер обмена |
+| `HoneycombHexGrid.kt` | 142 | соты (`clipToBounds` сохранён) |
+| `EmojiPickerPage.kt` | 155 | смайлики |
+| `NumpadGridView.kt` | 149 | цифровая панель |
+
+Попутно удалено **198 неиспользуемых импортов** (по 30–45 на файл).
+
+**Шаг 3 (`6e37fcd`) — `SettingsActivity` разбит:**
+
+- `SettingsComponents.kt` — карточка секции, палитра, toggle-строка, ползунок.
+- `SettingsPreview.kt` — тестовое поле и закреплённая клавиатура.
+- `SettingsRowEditor.kt` — конструктор рядов; состояние (`editingLang`, `selectedCell`)
+  осталось в Activity и передаётся коллбэками.
+- `SettingsActivity.kt`: 1 025 → **681 строка**.
+
+**Проверено после каждого шага:**
+
+- `assembleDebug testDebugUnitTest lintDebug` — зелёное, тесты **9 из 9**, lint **0 ошибок**.
+- Поведение не менялось: правки только структурные, логика перенесена дословно.
+
+**Что осталось (последний заход):**
+
+1. **Удалить мёртвый swap-код** — `isSwapMode`, `swapFirstPos`, `swapTwoKeys`,
+   `updateCurrentLangRows` и параметры `KeyButton` (`isSwapMode`, `isSelectedForSwap`,
+   `onSwapClick`). Попытка сделана, но задела тело `KeyButton` глубже, чем ожидалось
+   (там `currentOnSwapClick`, `borderMod`, условие саб-лейбла) — откатил, чтобы не оставить
+   полусломанное состояние. Нужен аккуратный проход по `Keys.kt`.
+2. **Единый хелпер Shift** — одинаковый блок `OFF → ONCE → CAPS_LOCK` продублирован
+   в `KeyboardScreen.kt` (строки ~305 и ~380) с магическим `420L`.
+3. **Неиспользуемые иконки** — `SWAP`, `HIDE_KEYBOARD`, `IME_SWITCHER`, `HEX_GRID`
+   объявлены, но не используются (по 1 вхождению — только объявление).
+4. **Дожать `SettingsActivity` до ~600** — вынести оставшиеся секции (палитры,
+   активные раскладки, отступ) в отдельные composable.
+
+Задача остаётся `in-progress`: перечисленное — механическая работа на один заход,
+но критерий «ни один файл не больше ~600» пока не выполнен для `SettingsActivity` (681).
