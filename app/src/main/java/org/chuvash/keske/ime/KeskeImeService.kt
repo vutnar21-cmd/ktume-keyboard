@@ -1,5 +1,7 @@
 package org.chuvash.keske.ime
 
+import org.chuvash.keske.data.*
+
 import android.content.Intent
 import android.inputmethodservice.InputMethodService
 import android.media.AudioManager
@@ -18,9 +20,6 @@ import androidx.savedstate.SavedStateRegistry
 import androidx.savedstate.SavedStateRegistryController
 import androidx.savedstate.SavedStateRegistryOwner
 import androidx.savedstate.setViewTreeSavedStateRegistryOwner
-import kotlinx.coroutines.flow.MutableStateFlow
-import org.chuvash.keske.ui.theme.KeyboardPreferences
-import org.chuvash.keske.ui.theme.PreferencesRepository
 
 /**
  * МОДУЛЬ: KeskeImeService.kt
@@ -40,12 +39,6 @@ class KeskeImeService : InputMethodService(), LifecycleOwner, ViewModelStoreOwne
     override val viewModelStore = ViewModelStore()
     private val savedStateRegistryController = SavedStateRegistryController.create(this)
     override val savedStateRegistry: SavedStateRegistry get() = savedStateRegistryController.savedStateRegistry
-
-    companion object {
-        val preferencesState = MutableStateFlow(KeyboardPreferences())
-        val isFieldEmptyState = MutableStateFlow(true)
-        val currentWordState = MutableStateFlow("")
-    }
 
     override fun onCreate() {
         super.onCreate()
@@ -73,8 +66,8 @@ class KeskeImeService : InputMethodService(), LifecycleOwner, ViewModelStoreOwne
 
     private fun updateEditorContextState() {
         val before = currentInputConnection?.getTextBeforeCursor(64, 0)?.toString().orEmpty()
-        isFieldEmptyState.value = before.isEmpty() || before.endsWith("\n")
-        currentWordState.value = KeyboardLayouts.extractCurrentWordBeforeCursor(before)
+        PreferencesState.isFieldEmpty.value = before.isEmpty() || before.endsWith("\n")
+        PreferencesState.currentWord.value = KeyboardLayouts.extractCurrentWordBeforeCursor(before)
     }
 
     private fun triggerFeedback(prefs: KeyboardPreferences) {
@@ -122,9 +115,9 @@ class KeskeImeService : InputMethodService(), LifecycleOwner, ViewModelStoreOwne
         }
 
         composeView.setContent {
-            val prefs by preferencesState.collectAsState()
-            val isFieldEmpty by isFieldEmptyState.collectAsState()
-            val editorCurrentWord by currentWordState.collectAsState()
+            val prefs by PreferencesState.preferences.collectAsState()
+            val isFieldEmpty by PreferencesState.isFieldEmpty.collectAsState()
+            val editorCurrentWord by PreferencesState.currentWord.collectAsState()
             KeyboardScreen(
                 prefs = prefs,
                 isFieldEmpty = isFieldEmpty,

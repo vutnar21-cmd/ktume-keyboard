@@ -1,5 +1,7 @@
 package org.chuvash.keske.ime
 
+import org.chuvash.keske.data.*
+
 import android.content.Intent
 import android.media.AudioManager
 import android.os.Bundle
@@ -68,7 +70,7 @@ class SettingsActivity : ComponentActivity() {
         PreferencesRepository.ensureLoaded(this)
 
         setContent {
-            val prefs by KeskeImeService.preferencesState.collectAsState()
+            val prefs by PreferencesState.preferences.collectAsState()
             val prefsLoaded by PreferencesRepository.loaded.collectAsState()
             val activePalette = remember(prefs.paletteId) { KeskePalettes.byId(prefs.paletteId) }
             val colorScheme = remember(activePalette) { activePalette.toColorScheme() }

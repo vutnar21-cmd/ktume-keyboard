@@ -1,4 +1,4 @@
-package org.chuvash.keske.ime
+package org.chuvash.keske.data
 
 import java.text.BreakIterator
 

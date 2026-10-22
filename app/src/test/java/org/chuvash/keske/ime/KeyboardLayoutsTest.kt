@@ -1,5 +1,7 @@
 package org.chuvash.keske.ime
 
+import org.chuvash.keske.data.*
+
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -170,7 +172,7 @@ class KeyboardLayoutsTest {
 
     @Test
     fun defaultPreferences_matchOptimalPresetAndBottomInset20() {
-        val prefs = org.chuvash.keske.ui.theme.KeyboardPreferences()
+        val prefs = KeyboardPreferences()
         assertEquals("obsidian_forest", prefs.paletteId)
         assertEquals(48f, prefs.keyHeightDp, 0.001f)
         assertEquals(14f, prefs.keyCornerRadiusDp, 0.001f)

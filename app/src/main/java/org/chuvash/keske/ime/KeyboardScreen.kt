@@ -1,5 +1,7 @@
 package org.chuvash.keske.ime
 
+import org.chuvash.keske.data.*
+
 import android.content.ClipboardManager
 import android.content.Context
 import android.graphics.CornerPathEffect
@@ -52,7 +54,6 @@ import kotlinx.coroutines.launch
 import org.chuvash.keske.ui.theme.KeskeFontFamily
 import org.chuvash.keske.ui.theme.KeskePalettes
 import org.chuvash.keske.ui.theme.KeyboardPalette
-import org.chuvash.keske.ui.theme.KeyboardPreferences
 import kotlin.math.abs
 import kotlin.math.max
 import kotlin.math.roundToInt
