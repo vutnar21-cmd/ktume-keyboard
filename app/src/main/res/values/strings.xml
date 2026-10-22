@@ -2,8 +2,10 @@
 <resources>
     <string name="app_name">Кӗске</string>
     <string name="ime_name">Кӗске</string>
-    <string name="subtype_chuvash">Чӑвашла</string>
-    <string name="subtype_russian">Русская</string>
-    <string name="subtype_latin">Latina</string>
-    <string name="subtype_greek">Ελληνικά</string>
+    <!-- Подтипы: «имя приложения» + перевод строки + название раскладки,
+         чтобы в системном меню выбора клавиатуры было видно и то, и другое. -->
+    <string name="subtype_chuvash">Кӗске\nЧӑвашла</string>
+    <string name="subtype_russian">Кӗске\nРусская</string>
+    <string name="subtype_latin">Кӗске\nLatina</string>
+    <string name="subtype_greek">Кӗске\nΕλληνικά</string>
 </resources>

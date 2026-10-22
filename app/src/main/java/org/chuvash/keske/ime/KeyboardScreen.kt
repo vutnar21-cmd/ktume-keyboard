@@ -1,6 +1,5 @@
 package org.chuvash.keske.ime
 
-import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
 import android.graphics.CornerPathEffect
@@ -515,7 +514,7 @@ fun KeyboardScreen(
                         }
                     }
 
-                    // Нижний ряд: ?123/АБВ, Глобус/1234, Запятая, Пробел, Дефис "-", Точка "." (со свайпом влево в "-"), Ввод ↵
+                    // Нижний ряд: ?123/АБВ, Запятая, Глобус/1234, Пробел, Дефис "-", Точка "." (со свайпом влево в "-"), Ввод ↵
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(gap),
@@ -534,6 +533,20 @@ fun KeyboardScreen(
                                     KeyboardMode.LETTERS
                                 }
                             }
+                        )
+
+                        KeyButton(
+                            label = ",",
+                            variants = KeyboardLayouts.getLongPressVariants(currentLang, ",", false),
+                            prefs = prefs,
+                            palette = palette,
+                            colFraction = 0.2f,
+                            isSwapMode = false,
+                            isSelectedForSwap = false,
+                            useHexShape = false,
+                            modifier = Modifier.weight(0.9f),
+                            onSwapClick = {},
+                            onCommit = { commitTrackedText(it) }
                         )
 
                         if (keyboardMode == KeyboardMode.LETTERS) {
@@ -555,20 +568,6 @@ fun KeyboardScreen(
                                 onClick = { keyboardMode = KeyboardMode.NUMPAD }
                             )
                         }
-
-                        KeyButton(
-                            label = ",",
-                            variants = KeyboardLayouts.getLongPressVariants(currentLang, ",", false),
-                            prefs = prefs,
-                            palette = palette,
-                            colFraction = 0.25f,
-                            isSwapMode = false,
-                            isSelectedForSwap = false,
-                            useHexShape = false,
-                            modifier = Modifier.weight(0.9f),
-                            onSwapClick = {},
-                            onCommit = { commitTrackedText(it) }
-                        )
 
                         SpacebarKey(
                             lang = currentLang,
@@ -968,13 +967,9 @@ private fun ClipboardOverlayBar(
             )
             if (clipText.isNotBlank()) {
                 MiniActionChip("Вставить", palette) {
-                    onCommit(clipText)
-                }
-                MiniActionChip("ăĕçÿ → ӑӗҫӳ", palette) {
-                    val normalized = KeyboardLayouts.normalizeChuvashUnicode(clipText)
-                    clipText = normalized
-                    clipboard?.setPrimaryClip(ClipData.newPlainText("keske", normalized))
-                    onCommit(normalized)
+                    // Конвертация «ложной латиницы» (ăĕçÿ → ӑӗҫӳ) выполняется неявно при вставке:
+                    // отдельная кнопка для этого не нужна. Системный буфер не перезаписываем.
+                    onCommit(KeyboardLayouts.normalizeChuvashUnicode(clipText))
                 }
             }
         }
@@ -1624,7 +1619,7 @@ private fun SpacebarKey(
         contentAlignment = Alignment.Center
     ) {
         Text(
-            text = "‹ ${lang.spaceLabel} ›",
+            text = lang.spaceLabel,
             color = palette.hintText,
             fontFamily = KeskeFontFamily,
             fontSize = 13.sp,
