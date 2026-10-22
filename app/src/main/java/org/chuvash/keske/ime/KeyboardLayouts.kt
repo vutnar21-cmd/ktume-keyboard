@@ -85,32 +85,32 @@ object KeyboardLayouts {
      * и выбирается первой при долгом нажатии (с выбором движением пальца).
      */
     val chuvashLongPress: Map<String, List<String>> = mapOf(
-        "й" to listOf("і", "ї", "ј"),
-        "ӑ" to listOf("ц", "ә", "ä", "а́"),
-        "у" to listOf("ӳ", "ў", "ү", "ӱ", "у́", "ū"),
+        "й" to listOf("ј", "ї"),
+        "ӑ" to listOf("ә"),
+        "у" to listOf("ў", "ү", "у́", "ū"),
         "к" to listOf("г", "ќ", "қ", "ҡ", "ґ", "ѓ", "ғ"),
-        "е" to listOf("ё", "э", "ӗ", "є", "е́", "ē"),
+        "е" to listOf("ё", "э", "є", "е́", "ē", "ѣ"),
         "н" to listOf("њ", "ң", "ҥ", "н́"),
-        "ӗ" to listOf("г", "ё", "э", "є"),
+        "ӗ" to listOf("ә", "ӛ"),
         "ш" to listOf("ж", "щ", "җ", "ш́"),
         "х" to listOf("һ", "ҳ"),
-        "ӳ" to listOf("ъ", "ў", "ү", "ӱ"),
-        "ф" to listOf("в", "ѳ"),
-        "ы" to listOf("ь", "ъ", "і", "ӹ", "ый"),
-        "в" to listOf("ф", "ў"),
-        "а" to listOf("ӑ", "ә", "ä", "а́", "ā"),
+        "ӳ" to listOf("ү", "ӱ"),
+        "ф" to listOf("ѳ"),
+        "ы" to listOf("ь", "ъ", "и"),
+        "в" to listOf("ў"),
+        "а" to listOf("ä", "а́", "ā"),
         "п" to listOf("б", "ҧ"),
         "р" to listOf("р́", "ҏ"),
         "о" to listOf("ӧ", "ө", "о́"),
         "л" to listOf("љ", "ԓ", "л́"),
-        "ҫ" to listOf("щ", "з", "ц", "ѕ"),
+        "ҫ" to listOf("щ", "ѕ"),
         "э" to listOf("є", "ӗ", "ә"),
         "я" to listOf("я́", "ѣ"),
         "ч" to listOf("ц", "џ", "ћ", "җ", "ҷ"),
-        "с" to listOf("з", "ҫ", "ц", "ѕ", "с́"),
+        "с" to listOf("з", "ѕ", "с́"),
         "м" to listOf("м́"),
-        "и" to listOf("й", "і", "ї", "ј", "и́", "ӣ"),
-        "т" to listOf("д", "ю", "ђ", "ћ", "ҭ"),
+        "и" to listOf("і", "ї", "и́", "ӣ"),
+        "т" to listOf("д", "ђ", "ћ", "ҭ"),
         "ь" to listOf("ъ", "ѣ"),
         "ю" to listOf("ю́"),
         "ц" to listOf("џ", "ѕ", "ц́")
@@ -314,11 +314,11 @@ object KeyboardLayouts {
         val isSoft = lastVowel != null && lastVowel in softVowels
 
         return if (currentWord.isBlank()) {
-            listOf("-и?", "-ши?", "-ха", "-ҫкӗ", "-тӑр", "-сем", "-па", "-ра")
+            listOf("-и?", "-ши?", "-ха", "-ҫкӗ", "-сем", "-па", "-ра")
         } else if (isSoft) {
-            listOf("-и?", "-ши?", "-ха", "-ҫкӗ", "сем", "ре", "пе", "тен", "терех")
+            listOf("-и?", "-ши?", "-ха", "-ҫкӗ", "сем", "ре", "пе", "тен")
         } else {
-            listOf("-и?", "-ши?", "-ха", "-ҫкӗ", "сем", "ра", "па", "тан", "тарах")
+            listOf("-и?", "-ши?", "-ха", "-ҫкӗ", "сем", "ра", "па", "тан")
         }
     }
 
