@@ -9,6 +9,7 @@ import android.os.Build
 import android.os.VibrationEffect
 import android.os.Vibrator
 import android.os.VibratorManager
+import android.util.Log
 import android.view.KeyEvent
 import android.view.View
 import android.view.inputmethod.EditorInfo
@@ -67,10 +68,27 @@ class KeskeImeService : InputMethodService(), LifecycleOwner, ViewModelStoreOwne
 
     private fun updateEditorContextState() {
         val ic = currentInputConnection
-        val before = ic?.getTextBeforeCursor(64, 0)?.toString().orEmpty()
-        val after = runCatching { ic?.getTextAfterCursor(64, 0)?.toString() }.getOrNull().orEmpty()
-        PreferencesState.isFieldEmpty.value = KeyboardLayouts.isCursorOnEmptyLine(before, after)
+        val beforeSeq = ic?.getTextBeforeCursor(64, 0)
+        val afterSeq = runCatching { ic?.getTextAfterCursor(64, 0) }.getOrNull()
+        val before = beforeSeq?.toString().orEmpty()
+        val emptyLine = KeyboardLayouts.isCursorOnEmptyLine(before, afterSeq?.toString().orEmpty())
+        // Часть редакторов (например, адресная строка браузера) не отдаёт текст через
+        // InputConnection — тогда о пустоте строки судим по ответу самого редактора
+        // getCursorCapsMode: 0 означает «заглавная здесь не нужна».
+        val editorAllowsCaps = beforeSeq != null || runCatching {
+            (ic?.getCursorCapsMode(
+                EditorInfo.TYPE_TEXT_FLAG_CAP_CHARACTERS or
+                    EditorInfo.TYPE_TEXT_FLAG_CAP_WORDS or
+                    EditorInfo.TYPE_TEXT_FLAG_CAP_SENTENCES
+            ) ?: 0) != 0
+        }.getOrDefault(false)
+        PreferencesState.isFieldEmpty.value = emptyLine && editorAllowsCaps
         PreferencesState.currentWord.value = KeyboardLayouts.extractCurrentWordBeforeCursor(before)
+        Log.d(
+            "KeskeCaps",
+            "before=${beforeSeq?.length ?: -1} after=${afterSeq?.length ?: -1} " +
+                "emptyLine=$emptyLine editorAllowsCaps=$editorAllowsCaps -> ${emptyLine && editorAllowsCaps}"
+        )
     }
 
     /**
