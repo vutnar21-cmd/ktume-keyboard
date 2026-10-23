@@ -66,8 +66,10 @@ class KeskeImeService : InputMethodService(), LifecycleOwner, ViewModelStoreOwne
     }
 
     private fun updateEditorContextState() {
-        val before = currentInputConnection?.getTextBeforeCursor(64, 0)?.toString().orEmpty()
-        PreferencesState.isFieldEmpty.value = before.isEmpty() || before.endsWith("\n")
+        val ic = currentInputConnection
+        val before = ic?.getTextBeforeCursor(64, 0)?.toString().orEmpty()
+        val after = runCatching { ic?.getTextAfterCursor(64, 0)?.toString() }.getOrNull().orEmpty()
+        PreferencesState.isFieldEmpty.value = KeyboardLayouts.isCursorOnEmptyLine(before, after)
         PreferencesState.currentWord.value = KeyboardLayouts.extractCurrentWordBeforeCursor(before)
     }
 

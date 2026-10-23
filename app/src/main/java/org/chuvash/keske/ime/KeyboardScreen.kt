@@ -102,16 +102,26 @@ fun KeyboardScreen(
     var shiftState by remember {
         mutableStateOf(if (prefs.autoCapitalize && isFieldEmpty) ShiftState.ONCE else ShiftState.OFF)
     }
+    // Shift включён автоматически (а не нажатием пользователя) — только его можно снять автоматически
+    var autoShiftArmed by remember { mutableStateOf(prefs.autoCapitalize && isFieldEmpty) }
     var lastShiftTapMs by remember { mutableLongStateOf(0L) }
     var lastSpaceTapMs by remember { mutableLongStateOf(0L) }
     var lastCommittedWasSpace by remember { mutableStateOf(false) }
     var keyboardMode by remember { mutableStateOf(KeyboardMode.LETTERS) }
     var toolbarOverlay by remember { mutableStateOf(ToolbarOverlay.NONE) }
 
-    // Автоматическая заглавная буква на пустом поле
+    // Автозаглавная буква: включается на пустой строке и снимается, когда курсор уходит
+    // в строку с уже набранным текстом (иначе приходится вручную переключать регистр).
     LaunchedEffect(isFieldEmpty, prefs.autoCapitalize) {
-        if (prefs.autoCapitalize && isFieldEmpty && shiftState == ShiftState.OFF) {
-            shiftState = ShiftState.ONCE
+        if (!prefs.autoCapitalize) return@LaunchedEffect
+        if (isFieldEmpty) {
+            if (shiftState == ShiftState.OFF) {
+                shiftState = ShiftState.ONCE
+                autoShiftArmed = true
+            }
+        } else if (autoShiftArmed && shiftState == ShiftState.ONCE) {
+            shiftState = ShiftState.OFF
+            autoShiftArmed = false
         }
     }
 
@@ -312,11 +322,13 @@ fun KeyboardScreen(
                                     else -> ShiftState.OFF
                                 }
                                 lastShiftTapMs = now
+                                autoShiftArmed = false
                             },
                             onCommit = { committed ->
                                 commitTrackedText(committed)
                                 if (shiftState == ShiftState.ONCE) {
                                     shiftState = ShiftState.OFF
+                                    autoShiftArmed = false
                                 }
                             },
                             onBackspace = {
@@ -386,6 +398,7 @@ fun KeyboardScreen(
                                                     else -> ShiftState.OFF
                                                 }
                                                 lastShiftTapMs = now
+                                                autoShiftArmed = false
                                             }
                                         )
                                     } else {
@@ -446,6 +459,7 @@ fun KeyboardScreen(
                                             commitTrackedText(committed)
                                             if (shiftState == ShiftState.ONCE) {
                                                 shiftState = ShiftState.OFF
+                                                autoShiftArmed = false
                                             }
                                         }
                                     )
@@ -584,6 +598,7 @@ fun KeyboardScreen(
                                 commitTrackedText(committed)
                                 if (prefs.autoCapitalize && shiftState == ShiftState.OFF && (committed == "." || committed == "!" || committed == "?")) {
                                     shiftState = ShiftState.ONCE
+                                    autoShiftArmed = false
                                 }
                             }
                         )
@@ -601,6 +616,7 @@ fun KeyboardScreen(
                                 if (prefs.autoCapitalize && shiftState == ShiftState.OFF) {
                                     shiftState = ShiftState.ONCE
                                 }
+                                autoShiftArmed = false
                             }
                         )
                     }

@@ -544,4 +544,15 @@ object KeyboardLayouts {
         val cpBeforeSpace = Character.codePointBefore(beforeCursor, beforeCursor.length - 1)
         return Character.isLetterOrDigit(cpBeforeSpace)
     }
+
+    /**
+     * Курсор стоит на пустой строке: слева до перевода строки и справа до ближайшего перевода
+     * строки текста нет. Только в этом случае уместна автоматическая заглавная буква —
+     * при переходе в строку, где текст уже набран, она только мешает.
+     */
+    fun isCursorOnEmptyLine(beforeCursor: String, afterCursor: String): Boolean {
+        val lineBefore = beforeCursor.substringAfterLast('\n')
+        val lineAfter = afterCursor.substringBefore('\n')
+        return lineBefore.isEmpty() && lineAfter.isEmpty()
+    }
 }

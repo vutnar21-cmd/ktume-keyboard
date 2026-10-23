@@ -600,7 +600,7 @@ class SettingsActivity : ComponentActivity() {
                         ) {
                                 KeyboardScreen(
                                     prefs = prefs.copy(bottomInsetDp = 8f),
-                                    isFieldEmpty = beforeCursor.isEmpty() || beforeCursor.endsWith("\n"),
+                                    isFieldEmpty = KeyboardLayouts.isCursorOnEmptyLine(beforeCursor, afterCursor),
                                     editorCurrentWord = KeyboardLayouts.extractCurrentWordBeforeCursor(beforeCursor),
                                     onUpdatePrefs = { updated ->
                                         // Не перезаписываем реальный bottomInsetDp пользователя значением 8f из превью

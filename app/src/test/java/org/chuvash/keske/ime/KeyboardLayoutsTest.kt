@@ -3,6 +3,7 @@ package org.chuvash.keske.ime
 import org.chuvash.keske.data.*
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -182,5 +183,27 @@ class KeyboardLayoutsTest {
         assertEquals(210, prefs.longPressDelayMs)
         assertTrue(prefs.showNumberRow)
         assertTrue(prefs.showParticlesStrip)
+    }
+
+    @Test
+    fun isCursorOnEmptyLine_trueOnlyForReallyEmptyLine() {
+        assertTrue("Пустое поле", KeyboardLayouts.isCursorOnEmptyLine("", ""))
+        assertTrue("Новая строка после Enter", KeyboardLayouts.isCursorOnEmptyLine("Текст\n", ""))
+        assertTrue("Пустая строка в середине текста", KeyboardLayouts.isCursorOnEmptyLine("abc\n", "\ndef"))
+        assertTrue("Пустая первая строка", KeyboardLayouts.isCursorOnEmptyLine("", "\nabc"))
+
+        assertFalse("Текст перед курсором в той же строке", KeyboardLayouts.isCursorOnEmptyLine("Привет", ""))
+        assertFalse(
+            "Курсор в начале строки, где уже есть текст",
+            KeyboardLayouts.isCursorOnEmptyLine("Первая строка\n", "вторая строка")
+        )
+        assertFalse(
+            "Курсор в середине непустой строки",
+            KeyboardLayouts.isCursorOnEmptyLine("abc\ndef", "gh")
+        )
+        assertFalse(
+            "Курсор в конце строки с текстом",
+            KeyboardLayouts.isCursorOnEmptyLine("abc\ndef", "")
+        )
     }
 }
