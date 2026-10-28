@@ -460,7 +460,7 @@ class SettingsActivity : ComponentActivity() {
                                     onValueChange = { savePrefs(prefs.copy(keyCornerRadiusDp = it)) }
                                 )
                                 SettingSliderRow(
-                                    label = "Расстояние между клавишами (по умолч. 8): ${prefs.keyGapDp.roundToInt()} dp",
+                                    label = "Расстояние между клавишами (по умолч. 3): ${prefs.keyGapDp.roundToInt()} dp",
                                     value = prefs.keyGapDp,
                                     range = 2f..10f,
                                     onValueChange = { savePrefs(prefs.copy(keyGapDp = it)) }

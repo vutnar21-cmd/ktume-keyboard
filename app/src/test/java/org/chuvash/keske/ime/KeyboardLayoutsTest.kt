@@ -186,7 +186,7 @@ class KeyboardLayoutsTest {
         assertEquals("obsidian_forest", prefs.paletteId)
         assertEquals(48f, prefs.keyHeightDp, 0.001f)
         assertEquals(14f, prefs.keyCornerRadiusDp, 0.001f)
-        assertEquals(8f, prefs.keyGapDp, 0.001f)
+        assertEquals(3f, prefs.keyGapDp, 0.001f)
         assertEquals(26f, prefs.fontSizeSp, 0.001f)
         assertEquals(20f, prefs.bottomInsetDp, 0.001f)
         assertEquals(210, prefs.longPressDelayMs)

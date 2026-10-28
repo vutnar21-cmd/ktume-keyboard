@@ -13,7 +13,7 @@ data class KeyboardPreferences(
     val chuvashPreset: String = ChuvashLayoutPreset.BALANCED_26.id,
     val keyHeightDp: Float = 48f,
     val keyCornerRadiusDp: Float = 14f,
-    val keyGapDp: Float = 8f,
+    val keyGapDp: Float = 3f,
     val fontSizeSp: Float = 26f,
     val bottomInsetDp: Float = 20f,     // По умолчанию 20 dp (регулируется ползунком в настройках)
     val soundVolumePercent: Float = 70f,// Регулировка громкости звука клавиш (привязана к общей громкости телефона)

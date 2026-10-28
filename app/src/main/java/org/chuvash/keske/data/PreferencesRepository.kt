@@ -55,7 +55,7 @@ object PreferencesRepository {
     private val KEY_CV_PRESET = stringPreferencesKey("cv_preset_v3")
     private val KEY_HEIGHT = floatPreferencesKey("key_height_dp_v5")
     private val KEY_RADIUS = floatPreferencesKey("key_radius_dp_v5")
-    private val KEY_GAP = floatPreferencesKey("key_gap_dp_v6")
+    private val KEY_GAP = floatPreferencesKey("key_gap_dp_v5")
     private val KEY_FONT_SIZE = floatPreferencesKey("font_size_sp_v5")
     private val KEY_BOTTOM_INSET = floatPreferencesKey("bottom_inset_dp_v5")
     private val KEY_SOUND_VOLUME = floatPreferencesKey("sound_volume_pct_v3")
@@ -110,7 +110,7 @@ object PreferencesRepository {
                     chuvashPreset = presetId,
                     keyHeightDp = p[KEY_HEIGHT] ?: 48f,
                     keyCornerRadiusDp = p[KEY_RADIUS] ?: 14f,
-                    keyGapDp = p[KEY_GAP] ?: 8f,
+                    keyGapDp = p[KEY_GAP] ?: 3f,
                     fontSizeSp = p[KEY_FONT_SIZE] ?: 26f,
                     bottomInsetDp = p[KEY_BOTTOM_INSET] ?: 20f,
                     soundVolumePercent = p[KEY_SOUND_VOLUME] ?: 70f,
