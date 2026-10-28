@@ -214,8 +214,9 @@ fun KeyboardScreen(
             )
     ) {
         val boardMaxWidth = maxWidth
-        val gap = prefs.keyGapDp.dp
-        val uniformKeyWidth = (boardMaxWidth - gap * (maxCols - 1)) / maxCols
+        val hGap = prefs.keyGapHDp.dp
+        val vGap = prefs.keyGapVDp.dp
+        val uniformKeyWidth = (boardMaxWidth - hGap * (maxCols - 1)) / maxCols
 
         Column(modifier = Modifier.fillMaxWidth()) {
             // 1. Чистая верхняя панель без словарных подсказок (с сингармоническими частицами/аффиксами + Буфер, Смайлы, Настройки)
@@ -287,7 +288,8 @@ fun KeyboardScreen(
                     NumpadGridView(
                         prefs = prefs,
                         palette = palette,
-                        gap = gap,
+                        hGap = hGap,
+                        vGap = vGap,
                         onCommit = { commitTrackedText(it) },
                         onBackspace = {
                             onBackspace()
@@ -345,7 +347,7 @@ fun KeyboardScreen(
                         if (prefs.showNumberRow) {
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.spacedBy(gap)
+                                horizontalArrangement = Arrangement.spacedBy(hGap)
                             ) {
                                 KeyboardLayouts.numberRow.forEachIndexed { idx, num ->
                                     val numVariants = KeyboardLayouts.getLongPressVariants(currentLang, num, false)
@@ -364,7 +366,7 @@ fun KeyboardScreen(
                                     )
                                 }
                             }
-                            Spacer(modifier = Modifier.height(gap))
+                            Spacer(modifier = Modifier.height(vGap))
                         }
 
                         // Основные 3 ряда букв (10 + 9 + 7 в Чӑвашла) без пустых боковых полей
@@ -376,7 +378,7 @@ fun KeyboardScreen(
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .padding(horizontal = rowSidePad),
-                                horizontalArrangement = Arrangement.spacedBy(gap),
+                                horizontalArrangement = Arrangement.spacedBy(hGap),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 if (rowIndex == activeRows.lastIndex) {
@@ -481,14 +483,14 @@ fun KeyboardScreen(
                                     )
                                 }
                             }
-                            Spacer(modifier = Modifier.height(gap))
+                            Spacer(modifier = Modifier.height(vGap))
                         }
                     }
 
                     // Нижний ряд: ?123/АБВ, Запятая, Глобус/1234, Пробел, Дефис "-", Точка "." (со свайпом влево в "-"), Ввод ↵
                     Row(
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(gap),
+                        horizontalArrangement = Arrangement.spacedBy(hGap),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         SpecialKey(

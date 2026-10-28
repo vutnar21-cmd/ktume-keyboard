@@ -122,7 +122,7 @@ internal fun EmojiPickerPage(
         // Нижняя строка управления на странице смайликов
         Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(prefs.keyGapDp.dp),
+            horizontalArrangement = Arrangement.spacedBy(prefs.keyGapHDp.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             SpecialKey(

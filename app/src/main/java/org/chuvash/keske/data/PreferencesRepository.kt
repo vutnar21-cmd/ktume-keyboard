@@ -55,7 +55,10 @@ object PreferencesRepository {
     private val KEY_CV_PRESET = stringPreferencesKey("cv_preset_v3")
     private val KEY_HEIGHT = floatPreferencesKey("key_height_dp_v5")
     private val KEY_RADIUS = floatPreferencesKey("key_radius_dp_v5")
-    private val KEY_GAP = floatPreferencesKey("key_gap_dp_v5")
+    private val KEY_GAP_H = floatPreferencesKey("key_gap_h_dp_v6")
+    private val KEY_GAP_V = floatPreferencesKey("key_gap_v_dp_v6")
+    /** Старый единый ключ: читается как fallback, чтобы не потерять значение пользователя. */
+    private val KEY_GAP_LEGACY = floatPreferencesKey("key_gap_dp_v5")
     private val KEY_FONT_SIZE = floatPreferencesKey("font_size_sp_v5")
     private val KEY_BOTTOM_INSET = floatPreferencesKey("bottom_inset_dp_v5")
     private val KEY_SOUND_VOLUME = floatPreferencesKey("sound_volume_pct_v3")
@@ -110,7 +113,8 @@ object PreferencesRepository {
                     chuvashPreset = presetId,
                     keyHeightDp = p[KEY_HEIGHT] ?: 48f,
                     keyCornerRadiusDp = p[KEY_RADIUS] ?: 14f,
-                    keyGapDp = p[KEY_GAP] ?: 3f,
+                    keyGapHDp = p[KEY_GAP_H] ?: p[KEY_GAP_LEGACY] ?: 3f,
+                    keyGapVDp = p[KEY_GAP_V] ?: 7f,
                     fontSizeSp = p[KEY_FONT_SIZE] ?: 26f,
                     bottomInsetDp = p[KEY_BOTTOM_INSET] ?: 20f,
                     soundVolumePercent = p[KEY_SOUND_VOLUME] ?: 70f,
@@ -154,7 +158,8 @@ object PreferencesRepository {
                     p[KEY_CV_PRESET] = updated.chuvashPreset
                     p[KEY_HEIGHT] = updated.keyHeightDp
                     p[KEY_RADIUS] = updated.keyCornerRadiusDp
-                    p[KEY_GAP] = updated.keyGapDp
+                    p[KEY_GAP_H] = updated.keyGapHDp
+                    p[KEY_GAP_V] = updated.keyGapVDp
                     p[KEY_FONT_SIZE] = updated.fontSizeSp
                     p[KEY_BOTTOM_INSET] = updated.bottomInsetDp
                     p[KEY_SOUND_VOLUME] = updated.soundVolumePercent

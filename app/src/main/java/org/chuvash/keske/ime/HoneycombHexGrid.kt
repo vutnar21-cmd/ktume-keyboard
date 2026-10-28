@@ -43,7 +43,7 @@ internal fun HoneycombHexGrid(
     onBackspace: () -> Unit,
     onDeleteWord: () -> Unit
 ) {
-    val gap = prefs.keyGapDp.dp
+    val gap = prefs.keyGapHDp.dp
     val maxHexCellsInRow = rows.mapIndexed { idx, r ->
         if (idx == rows.lastIndex) r.size + 2 else r.size
     }.maxOrNull()?.coerceAtLeast(7) ?: 7

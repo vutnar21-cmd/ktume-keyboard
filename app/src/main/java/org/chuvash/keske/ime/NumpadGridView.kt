@@ -32,7 +32,8 @@ import org.chuvash.keske.ui.theme.KeyboardPalette
 internal fun NumpadGridView(
     prefs: KeyboardPreferences,
     palette: KeyboardPalette,
-    gap: Dp,
+    hGap: Dp,
+    vGap: Dp,
     onCommit: (String) -> Unit,
     onBackspace: () -> Unit,
     onDeleteWord: () -> Unit,
@@ -42,12 +43,12 @@ internal fun NumpadGridView(
 ) {
     Column(
         modifier = Modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(gap)
+        verticalArrangement = Arrangement.spacedBy(vGap)
     ) {
         KeyboardLayouts.numpadRows.forEachIndexed { rIdx, row ->
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(gap),
+                horizontalArrangement = Arrangement.spacedBy(hGap),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 row.forEach { keyLabel ->
@@ -120,7 +121,7 @@ internal fun NumpadGridView(
         // Нижний ряд: к символам, пробел, к буквам
         Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(gap),
+            horizontalArrangement = Arrangement.spacedBy(hGap),
             verticalAlignment = Alignment.CenterVertically
         ) {
             SpecialKey(

@@ -460,10 +460,16 @@ class SettingsActivity : ComponentActivity() {
                                     onValueChange = { savePrefs(prefs.copy(keyCornerRadiusDp = it)) }
                                 )
                                 SettingSliderRow(
-                                    label = "Расстояние между клавишами (по умолч. 3): ${prefs.keyGapDp.roundToInt()} dp",
-                                    value = prefs.keyGapDp,
-                                    range = 2f..10f,
-                                    onValueChange = { savePrefs(prefs.copy(keyGapDp = it)) }
+                                    label = "Зазор по горизонтали (по умолч. 3): ${prefs.keyGapHDp.roundToInt()} dp",
+                                    value = prefs.keyGapHDp,
+                                    range = 0f..10f,
+                                    onValueChange = { savePrefs(prefs.copy(keyGapHDp = it)) }
+                                )
+                                SettingSliderRow(
+                                    label = "Зазор по вертикали (по умолч. 7): ${prefs.keyGapVDp.roundToInt()} dp",
+                                    value = prefs.keyGapVDp,
+                                    range = 0f..14f,
+                                    onValueChange = { savePrefs(prefs.copy(keyGapVDp = it)) }
                                 )
                                 SettingSliderRow(
                                     label = "Размер шрифта Comfortaa (по умолч. 26): ${prefs.fontSizeSp.roundToInt()} sp",
