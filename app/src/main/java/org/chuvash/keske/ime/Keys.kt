@@ -90,7 +90,9 @@ internal fun KeyButton(
     onCommit: (String) -> Unit
 ) {
     var showLongPressPopup by remember { mutableStateOf(false) }
-    var selectedVariantIndex by remember { mutableIntStateOf(0) }
+    var selectedVariantIndex by remember { mutableIntStateOf(
+        KeyboardLayouts.initialLongPressVariantIndex(variants, colFraction)
+    ) }
     var isPressed by remember { mutableStateOf(false) }
 
     val displayedVariants = remember(variants) {
@@ -245,7 +247,9 @@ internal fun KeyButton(
     ) {
         if (prefs.showSubLabels && variants.isNotEmpty() && !isSwapMode && !useHexShape) {
             Text(
-                text = variants.first(),
+                text = KeyboardLayouts
+                    .getDisplayedLongPressVariants(variants)
+                    .getOrElse(KeyboardLayouts.initialLongPressVariantIndex(variants, colFraction)) { variants.first() },
                 color = palette.hintText.copy(alpha = 0.75f),
                 fontFamily = KeskeFontFamily,
                 fontSize = 9.sp,

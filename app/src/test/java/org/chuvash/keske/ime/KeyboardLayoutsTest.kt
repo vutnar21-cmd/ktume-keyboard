@@ -52,26 +52,35 @@ class KeyboardLayoutsTest {
         val displayed = KeyboardLayouts.getDisplayedLongPressVariants(periodVariants)
         assertEquals(7, displayed.size)
 
-        // Правый край экрана (colFraction = 0.85f для клавиши '.'): попап прижимается вправо,
-        // но преселект остаётся первым — он совпадает с микро-меткой в углу клавиши.
+        // Правый край экрана (colFraction = 0.85f): попап прижат вправо, выбор начинается
+        // с крайнего правого варианта и уходит влево.
         val initIdx = KeyboardLayouts.computeLongPressSelectedIndex(
             variants = periodVariants,
             colFraction = 0.85f,
             dragSteps = 0
         )
         assertEquals(
-            "Initial index must always point to the first displayed variant",
-            0,
+            "On the right edge the initial index must be the rightmost displayed variant",
+            displayed.lastIndex,
             initIdx
         )
         assertEquals(
-            "Selected variant must equal the first displayed variant (sub-label contract)",
-            displayed.first(),
-            displayed[initIdx]
+            "Sub-label contract: the variant chosen on press without movement",
+            displayed.lastIndex,
+            KeyboardLayouts.initialLongPressVariantIndex(periodVariants, 0.85f)
+        )
+        assertEquals(
+            "A left-edge key still starts from the first variant",
+            0,
+            KeyboardLayouts.initialLongPressVariantIndex(periodVariants, 0.1f)
         )
 
-        // Ведение пальца вправо двигает выбор и не выходит за пределы видимого списка
-        assertEquals(2, KeyboardLayouts.computeLongPressSelectedIndex(periodVariants, 0.85f, 2))
+        // Ведение пальца двигает выбор и не выходит за пределы видимого списка
+        assertEquals(
+            "Drag to the left moves selection towards the first variant",
+            displayed.lastIndex - 2,
+            KeyboardLayouts.computeLongPressSelectedIndex(periodVariants, 0.85f, -2)
+        )
         assertEquals(
             "Drag must clamp to the last displayed variant",
             displayed.lastIndex,
@@ -177,7 +186,7 @@ class KeyboardLayoutsTest {
         assertEquals("obsidian_forest", prefs.paletteId)
         assertEquals(48f, prefs.keyHeightDp, 0.001f)
         assertEquals(14f, prefs.keyCornerRadiusDp, 0.001f)
-        assertEquals(3f, prefs.keyGapDp, 0.001f)
+        assertEquals(8f, prefs.keyGapDp, 0.001f)
         assertEquals(26f, prefs.fontSizeSp, 0.001f)
         assertEquals(20f, prefs.bottomInsetDp, 0.001f)
         assertEquals(210, prefs.longPressDelayMs)

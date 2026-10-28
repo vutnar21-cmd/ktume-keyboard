@@ -362,9 +362,9 @@ object KeyboardLayouts {
     /**
      * Вычисляет индекс выбранного варианта внутри видимого списка (getDisplayedLongPressVariants).
      *
-     * Преселект всегда равен 0: микро-метка в углу клавиши показывает variants.first(),
-     * поэтому при долгом нажатии без движения вставляется именно первый вариант.
-     * Прижатие попапа к правому краю экрана — задача позиционирования (KeyboardScreen), а не выбора.
+     * У правого края экрана попап прижат вправо, поэтому палец оказывается над крайним правым
+     * вариантом: выбор начинается с него и уходит влево (dragSteps < 0). В остальных случаях —
+     * с первого варианта. Микро-метка на клавише показывает тот же вариант, что выбран стартом.
      */
     fun computeLongPressSelectedIndex(
         variants: List<String>,
@@ -374,7 +374,15 @@ object KeyboardLayouts {
     ): Int {
         val displayed = getDisplayedLongPressVariants(variants, maxCount)
         if (displayed.isEmpty()) return 0
-        return dragSteps.coerceIn(0, displayed.lastIndex)
+        val base = if (colFraction > 0.78f) displayed.lastIndex else 0
+        return (base + dragSteps).coerceIn(0, displayed.lastIndex)
+    }
+
+    /** Индекс варианта, который будет вставлен при долгом нажатии без движения. */
+    fun initialLongPressVariantIndex(variants: List<String>, colFraction: Float, maxCount: Int = 7): Int {
+        val displayed = getDisplayedLongPressVariants(variants, maxCount)
+        if (displayed.isEmpty()) return 0
+        return if (colFraction > 0.78f) displayed.lastIndex else 0
     }
 
     /**

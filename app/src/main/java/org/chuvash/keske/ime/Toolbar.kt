@@ -200,6 +200,7 @@ internal fun ClipboardOverlayBar(
         val item = clipboard?.primaryClip?.getItemAt(0)?.text?.toString().orEmpty()
         mutableStateOf(item)
     }
+    val hasText = clipText.isNotBlank()
 
     Surface(
         color = palette.specialKeyBg,
@@ -213,22 +214,38 @@ internal fun ClipboardOverlayBar(
             horizontalArrangement = Arrangement.spacedBy(8.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
+            // Вся полоса — зона вставки: тап по тексту вставляет содержимое буфера.
+            // Конвертация «ложной латиницы» (ăĕçÿ → ӑӗҫӳ) выполняется неявно, буфер не перезаписывается.
             Text(
-                text = if (clipText.isBlank()) "Буфер обмена пуст" else clipText.take(36),
-                color = palette.keyText,
+                text = if (hasText) clipText.take(36) else "Буфер обмена пуст",
+                color = if (hasText) palette.keyText else palette.hintText,
                 fontFamily = KeskeFontFamily,
                 fontSize = 12.sp,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.weight(1f)
+                modifier = Modifier
+                    .weight(1f)
+                    .then(
+                        if (hasText) {
+                            Modifier
+                                .semantics(mergeDescendants = true) {
+                                    role = Role.Button
+                                    contentDescription = "Вставить из буфера обмена"
+                                    onClick(label = "Вставить") {
+                                        onCommit(KeyboardLayouts.normalizeChuvashUnicode(clipText))
+                                        true
+                                    }
+                                }
+                                .pointerInput(clipText) {
+                                    detectTapGestures(onTap = {
+                                        onCommit(KeyboardLayouts.normalizeChuvashUnicode(clipText))
+                                    })
+                                }
+                        } else {
+                            Modifier
+                        }
+                    )
             )
-            if (clipText.isNotBlank()) {
-                MiniActionChip("Вставить", palette) {
-                    // Конвертация «ложной латиницы» (ăĕçÿ → ӑӗҫӳ) выполняется неявно при вставке:
-                    // отдельная кнопка для этого не нужна. Системный буфер не перезаписываем.
-                    onCommit(KeyboardLayouts.normalizeChuvashUnicode(clipText))
-                }
-            }
         }
     }
 }
