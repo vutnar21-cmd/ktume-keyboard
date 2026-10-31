@@ -85,3 +85,31 @@ created: 2026-10-23
 4. Настройка «Автозаглавная» выключена → заглавной нет нигде.
 
 APK собран и передан владельцу: `keske-011-autocaps-debug.apk`.
+
+### 2026-11-01 · 95 % · статус `review` (поведение Gboard: поля ввода и точка)
+
+**Доработка по замечаниям владельца с устройства:**
+
+1. *«Большая буква при переключении на поле ввода не должна быть по умолчанию, как в Gboard»:*
+   раньше `beforeSeq != null` в `KeskeImeService` форсировал автозаглавную в любом пустом поле,
+   игнорируя `EditorInfo.inputType` (URL, поиск, email, пароли, терминал, обычные веб-поля).
+2. *«Если после точки есть символ, не начинать с большой буквы (email, сайты, команды)»:*
+   раньше нажатие клавиши `.` сразу включало `ShiftState.ONCE` без ожидания пробела (`site.Com`,
+   `user.Name`, `./Gradlew`).
+
+**Сделано:**
+
+- `KeyboardLayouts.resolveEditorCapFlags(inputType)` — разрешает автозаглавную только в текстовых
+  полях, которые сами запрашивают `TYPE_TEXT_FLAG_CAP_*`, и жёстко блокирует `TYPE_NULL`,
+  `URI`, `EMAIL_ADDRESS`, `WEB_EMAIL_ADDRESS` и `*PASSWORD`.
+- `KeyboardLayouts.shouldAutoCapitalize(beforeCursor, afterCursor, editorCapFlags)` — включает
+  заглавную только при `editorCapFlags != 0`, отсутствии символов справа на текущей строке
+  (`lineAfter.isEmpty()`) и только на пустой строке либо после конца предложения **с пробелом**
+  (`"Салам. "`, `"Епле? "`, `"Тавтапуҫ! "`), не срабатывая на `ivan.petrov`, `chuvash.org`,
+  `./gradlew`, `. ~/.bashrc`, `cd .. ` и при курсоре перед символом (`ivan.|petrov`).
+- `PreferencesState`: `shouldAutoCapitalize` по умолчанию `false` + `inputSessionId` для сброса
+  одноразового Shift прошлого поля в `onStartInputView(restarting = false)`.
+- `KeyboardScreen`: убраны безусловные локальные включения `ShiftState.ONCE` на клавишах `.` и `Enter`;
+  убран спам `Log.d("KeskeCaps")` из `KeskeImeService`.
+- Добавлены unit-тесты `resolveEditorCapFlags_respectsGboardFieldRules` и
+  `shouldAutoCapitalize_preventsCapsInEmailsUrlsCommandsAndMidLine`.

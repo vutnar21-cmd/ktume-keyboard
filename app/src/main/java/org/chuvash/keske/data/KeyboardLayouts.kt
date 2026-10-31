@@ -1,5 +1,6 @@
 package org.chuvash.keske.data
 
+import android.view.inputmethod.EditorInfo
 import java.text.BreakIterator
 
 /**
@@ -354,17 +355,37 @@ object KeyboardLayouts {
     }
 
     /**
-     * Видимые варианты в Popup долгого нажатия (единый список для рендеринга, выбора и вставки).
+     * Порог правой половины клавиатуры: начиная с середины ряда (`colFraction >= 0.5f`)
+     * попап Long-Press раскрывается влево (`TopEnd`), а варианты раскладываются справа налево,
+     * чтобы палец не упирался в правую границу экрана.
      */
-    fun getDisplayedLongPressVariants(variants: List<String>, maxCount: Int = 7): List<String> =
-        variants.take(maxCount)
+    const val RIGHT_HALF_COL_THRESHOLD = 0.5f
+
+    private val CLOSING_SENTENCE_CHARS = setOf('»', '"', '”', '\'', '’', ')', ']')
+
+    fun isRightSideKey(colFraction: Float): Boolean = colFraction >= RIGHT_HALF_COL_THRESHOLD
 
     /**
-     * Вычисляет индекс выбранного варианта внутри видимого списка (getDisplayedLongPressVariants).
+     * Видимые варианты в Popup долгого нажатия (единый список для рендеринга, выбора и вставки).
+     * На левой половине идут слева направо `[v0, v1, ...]`, на правой (`colFraction >= 0.5f`) —
+     * справа налево `[..., v1, v0]`, так что самый частый вариант `v0` всегда стоит прямо над
+     * нажатой клавишей, а движение пальца к центру экрана перебирает `v1, v2, ...`.
+     */
+    fun getDisplayedLongPressVariants(
+        variants: List<String>,
+        colFraction: Float = 0f,
+        maxCount: Int = 7
+    ): List<String> {
+        val top = variants.take(maxCount)
+        return if (isRightSideKey(colFraction)) top.reversed() else top
+    }
+
+    /**
+     * Вычисляет индекс выбранного варианта внутри видимого списка ([getDisplayedLongPressVariants]).
      *
-     * У правого края экрана попап прижат вправо, поэтому палец оказывается над крайним правым
-     * вариантом: выбор начинается с него и уходит влево (dragSteps < 0). В остальных случаях —
-     * с первого варианта. Микро-метка на клавише показывает тот же вариант, что выбран стартом.
+     * На правой половине (`colFraction >= 0.5f`) старт — крайняя правая ячейка (`count - 1`, где
+     * лежит самый частый вариант `variants[0]`), движение пальца влево (`dragSteps < 0`) уменьшает
+     * индекс. На левой половине старт — `0`, движение вправо (`dragSteps > 0`) увеличивает индекс.
      */
     fun computeLongPressSelectedIndex(
         variants: List<String>,
@@ -372,17 +393,17 @@ object KeyboardLayouts {
         dragSteps: Int,
         maxCount: Int = 7
     ): Int {
-        val displayed = getDisplayedLongPressVariants(variants, maxCount)
-        if (displayed.isEmpty()) return 0
-        val base = if (colFraction > 0.78f) displayed.lastIndex else 0
-        return (base + dragSteps).coerceIn(0, displayed.lastIndex)
+        val count = variants.size.coerceAtMost(maxCount)
+        if (count == 0) return 0
+        val base = if (isRightSideKey(colFraction)) count - 1 else 0
+        return (base + dragSteps).coerceIn(0, count - 1)
     }
 
-    /** Индекс варианта, который будет вставлен при долгом нажатии без движения. */
+    /** Индекс ячейки в [getDisplayedLongPressVariants], вставляемой при долгом нажатии без движения. */
     fun initialLongPressVariantIndex(variants: List<String>, colFraction: Float, maxCount: Int = 7): Int {
-        val displayed = getDisplayedLongPressVariants(variants, maxCount)
-        if (displayed.isEmpty()) return 0
-        return if (colFraction > 0.78f) displayed.lastIndex else 0
+        val count = variants.size.coerceAtMost(maxCount)
+        if (count == 0) return 0
+        return if (isRightSideKey(colFraction)) count - 1 else 0
     }
 
     /**
@@ -555,12 +576,106 @@ object KeyboardLayouts {
 
     /**
      * Курсор стоит на пустой строке: слева до перевода строки и справа до ближайшего перевода
-     * строки текста нет. Только в этом случае уместна автоматическая заглавная буква —
-     * при переходе в строку, где текст уже набран, она только мешает.
+     * строки текста нет.
      */
     fun isCursorOnEmptyLine(beforeCursor: String, afterCursor: String): Boolean {
         val lineBefore = beforeCursor.substringAfterLast('\n')
         val lineAfter = afterCursor.substringBefore('\n')
         return lineBefore.isEmpty() && lineAfter.isEmpty()
+    }
+
+    /**
+     * Извлекает разрешённые флаги автозаглавной буквы из [EditorInfo.inputType] по образцу Gboard:
+     * - если поле не текстовое (`TYPE_NULL`, число, телефон) — `0`;
+     * - если поле — URI/сайт, email или пароль — `0` (даже если выставлены `CAP_*` флаги);
+     * - иначе возвращает только явно запрошенные полем флаги `TYPE_TEXT_FLAG_CAP_*`.
+     * Если само поле не просит автозаглавную (`0`), клавиатура не включает большую букву по умолчанию.
+     */
+    fun resolveEditorCapFlags(inputType: Int): Int {
+        if (inputType == EditorInfo.TYPE_NULL) return 0
+        if ((inputType and EditorInfo.TYPE_MASK_CLASS) != EditorInfo.TYPE_CLASS_TEXT) return 0
+        val variation = inputType and EditorInfo.TYPE_MASK_VARIATION
+        if (variation == EditorInfo.TYPE_TEXT_VARIATION_URI ||
+            variation == EditorInfo.TYPE_TEXT_VARIATION_EMAIL_ADDRESS ||
+            variation == EditorInfo.TYPE_TEXT_VARIATION_WEB_EMAIL_ADDRESS ||
+            variation == EditorInfo.TYPE_TEXT_VARIATION_PASSWORD ||
+            variation == EditorInfo.TYPE_TEXT_VARIATION_VISIBLE_PASSWORD ||
+            variation == EditorInfo.TYPE_TEXT_VARIATION_WEB_PASSWORD
+        ) {
+            return 0
+        }
+        return inputType and (
+            EditorInfo.TYPE_TEXT_FLAG_CAP_CHARACTERS or
+                EditorInfo.TYPE_TEXT_FLAG_CAP_WORDS or
+                EditorInfo.TYPE_TEXT_FLAG_CAP_SENTENCES
+        )
+    }
+
+    /**
+     * Определяет, должна ли автоматически включиться заглавная буква в текущей позиции курсора
+     * (поведение Gboard):
+     * 1) Если поле ввода не запрашивает автокапитализацию (`editorCapFlags == 0`) — всегда `false`.
+     * 2) Для `CAP_CHARACTERS` — всегда `true`.
+     * 3) Если на текущей строке справа от курсора уже есть любой символ (`lineAfter.isNotEmpty()`) —
+     *    `false` (не включать заглавную внутри набранной строки, email, URL или команды).
+     * 4) На пустой строке (`lineBefore.isEmpty()`) — `true`.
+     * 5) Для `CAP_WORDS` — `true` после пробела.
+     * 6) Для `CAP_SENTENCES` — `true` только после знака конца предложения (`.`, `!`, `?`, `…`),
+     *    за которым уже следует пробел (`. `), причём перед точкой должна стоять буква, цифра или
+     *    закрывающая скобка/кавычка (сразу после точки без пробела `site.ru`, `user.name`, `./cmd`,
+     *    а также после `. ` в начале строки или `cd .. ` заглавная не включается).
+     */
+    fun shouldAutoCapitalize(
+        beforeCursor: String,
+        afterCursor: String,
+        editorCapFlags: Int
+    ): Boolean {
+        if (editorCapFlags == 0) return false
+        if ((editorCapFlags and EditorInfo.TYPE_TEXT_FLAG_CAP_CHARACTERS) != 0) return true
+
+        val lineBefore = beforeCursor.substringAfterLast('\n')
+        val lineAfter = afterCursor.substringBefore('\n')
+        if (lineAfter.isNotEmpty()) return false
+        if (lineBefore.isEmpty()) return true
+
+        val endsWithHorizontalSpace = lineBefore.endsWith(' ') || lineBefore.endsWith('\t')
+        if (!endsWithHorizontalSpace) return false
+
+        if ((editorCapFlags and EditorInfo.TYPE_TEXT_FLAG_CAP_WORDS) != 0) {
+            return true
+        }
+        if ((editorCapFlags and EditorInfo.TYPE_TEXT_FLAG_CAP_SENTENCES) != 0) {
+            return isAfterSentenceBoundary(lineBefore)
+        }
+        return false
+    }
+
+    private fun isAfterSentenceBoundary(lineBefore: String): Boolean {
+        var i = lineBefore.length - 1
+        while (i >= 0 && (lineBefore[i] == ' ' || lineBefore[i] == '\t')) {
+            i--
+        }
+        while (i >= 0 && lineBefore[i] in CLOSING_SENTENCE_CHARS) {
+            i--
+        }
+        if (i < 0) return false
+
+        return when (lineBefore[i]) {
+            '!', '?', '…' -> {
+                if (i == 0) return false
+                val cpBefore = Character.codePointBefore(lineBefore, i)
+                Character.isLetterOrDigit(cpBefore) || lineBefore[i - 1] in CLOSING_SENTENCE_CHARS
+            }
+            '.' -> {
+                var dotStart = i
+                while (dotStart > 0 && lineBefore[dotStart - 1] == '.') {
+                    dotStart--
+                }
+                if (dotStart == 0) return false
+                val cpBeforeDots = Character.codePointBefore(lineBefore, dotStart)
+                Character.isLetterOrDigit(cpBeforeDots) || lineBefore[dotStart - 1] in CLOSING_SENTENCE_CHARS
+            }
+            else -> false
+        }
     }
 }

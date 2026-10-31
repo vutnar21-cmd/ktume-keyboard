@@ -6,6 +6,7 @@ import android.content.Intent
 import android.media.AudioManager
 import android.os.Bundle
 import android.provider.Settings
+import android.view.inputmethod.EditorInfo
 import android.view.inputmethod.InputMethodManager
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -606,7 +607,11 @@ class SettingsActivity : ComponentActivity() {
                         ) {
                                 KeyboardScreen(
                                     prefs = prefs.copy(bottomInsetDp = 8f),
-                                    isFieldEmpty = KeyboardLayouts.isCursorOnEmptyLine(beforeCursor, afterCursor),
+                                    shouldAutoCapitalize = KeyboardLayouts.shouldAutoCapitalize(
+                                        beforeCursor = beforeCursor,
+                                        afterCursor = afterCursor,
+                                        editorCapFlags = EditorInfo.TYPE_TEXT_FLAG_CAP_SENTENCES
+                                    ),
                                     editorCurrentWord = KeyboardLayouts.extractCurrentWordBeforeCursor(beforeCursor),
                                     onUpdatePrefs = { updated ->
                                         // Не перезаписываем реальный bottomInsetDp пользователя значением 8f из превью

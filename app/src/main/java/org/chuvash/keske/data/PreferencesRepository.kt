@@ -23,8 +23,14 @@ object PreferencesState {
     /** Поток текущих настроек: его читают и сервис клавиатуры, и экран настроек. */
     val preferences = MutableStateFlow(KeyboardPreferences())
 
-    /** true, когда поле ввода пустое (для автозаглавной буквы). */
-    val isFieldEmpty = MutableStateFlow(true)
+    /**
+     * true, когда контекст текущего поля ввода и позиция курсора требуют автозаглавной буквы
+     * (по образцу Gboard: по умолчанию false, включается только если поле запрашивает CAP_*).
+     */
+    val shouldAutoCapitalize = MutableStateFlow(false)
+
+    /** Счётчик переключений в новое поле ввода (сбрасывает одноразовый Shift прошлого поля). */
+    val inputSessionId = MutableStateFlow(0)
 
     /** Текущее набираемое слово перед курсором (для ленты аффиксов). */
     val currentWord = MutableStateFlow("")

@@ -79,8 +79,9 @@ $env:JAVA_HOME = "C:/Program Files/COMSOL/COMSOL64/Multiphysics/java/win64/jre"
   - Неизменяемая модель всех настроек клавиатуры, геометрии, флагов ввода, экспериментов и
     пользовательских рядов `customRowsByLang`.
 - **`data/PreferencesRepository.kt`**
-  - `PreferencesState` — общие `MutableStateFlow` (`preferences`, `isFieldEmpty`, `currentWord`),
-    которые читают сервис и экран настроек без связи через `companion object` сервиса.
+  - `PreferencesState` — общие `MutableStateFlow` (`preferences`, `shouldAutoCapitalize`,
+    `inputSessionId`, `currentWord`), которые читают сервис и экран настроек без связи через
+    `companion object` сервиса.
   - `PreferencesRepository` — чтение и запись в Jetpack DataStore (`keske_keyboard_prefs_v3`).
   - **Важно:** меняя дефолт настройки, которая уже могла сохраниться на устройстве, подними
     суффикс версии ключа `preferencesKey` (например, `_v5` → `_v6`, при необходимости с чтением
@@ -113,9 +114,10 @@ $env:JAVA_HOME = "C:/Program Files/COMSOL/COMSOL64/Multiphysics/java/win64/jre"
 
 - **`ime/KeskeImeService.kt`**
   - `InputMethodService` с `LifecycleOwner`, `ViewModelStoreOwner`, `SavedStateRegistryOwner`.
-  - Отслеживает пустоту текущей строки (`PreferencesState.isFieldEmpty` через `isCursorOnEmptyLine`
-    с фолбэком на `getCursorCapsMode` для редакторов, не отдающих текст) и слово перед курсором
-    (`PreferencesState.currentWord`) в `onStartInputView` / `onUpdateSelection`.
+  - Отслеживает контекст автозаглавной по образцу Gboard (`PreferencesState.shouldAutoCapitalize`
+    через `resolveEditorCapFlags` + `shouldAutoCapitalize`, не включая заглавную в полях без `CAP_*`,
+    URL, email, паролях, командах и сразу после точки без пробела), смену поля ввода (`inputSessionId`)
+    и слово перед курсором (`PreferencesState.currentWord`) в `onStartInputView` / `onUpdateSelection`.
   - Удаление через `computeLastGraphemeLength` (целые кластеры Unicode), звук
     `AudioManager.FX_KEYPRESS_STANDARD` с учётом `STREAM_MUSIC` и `soundVolumePercent`, вибро,
     экспериментальная капитализация имён перед пробелом.
@@ -193,16 +195,19 @@ $env:JAVA_HOME = "C:/Program Files/COMSOL/COMSOL64/Multiphysics/java/win64/jre"
    перекрываются, поэтому каждый `Row` ограничен `.height(rowHitHeight).clipToBounds()`.
    `clipToBounds` обрезает и отрисовку, и hit-test — иначе тап по нижней части клавиши
    печатает букву из ряда ниже. Не убирай `clipToBounds` при рефакторинге сот.
-10. **Контекст слова и пустой строки — только из редактора.** `KeyboardScreen` не ведёт собственный
-    буфер слова: единственный источник — `editorCurrentWord` (`PreferencesState.currentWord` либо
-    текст превью). Автозаглавная (`isFieldEmpty` через `isCursorOnEmptyLine` + `autoShiftArmed`)
-    включается только на действительно пустой строке (слева и справа до `\n` пусто) и автоматически
-    снимается при переходе курсора на строку с текстом, не трогая ручной Shift и `CAPS_LOCK`.
-11. **Преселект Long-Press совпадает с микро-меткой.** В обычной зоне выбор начинается с `0`
-    (первый вариант, ведение вправо), а у правого края экрана — с `lastIndex` видимого списка
-    (крайний правый вариант, ведение влево без упора в границу экрана). Микро-метка в углу клавиши
-    (`initialLongPressVariantIndex`) всегда показывает именно тот вариант, который вставится при
-    долгом нажатии без движения.
+10. **Контекст слова и автозаглавной — только из редактора (как в Gboard).** `KeyboardScreen` не
+    ведёт собственный буфер слова: единственный источник — `editorCurrentWord`. Автозаглавная
+    (`resolveEditorCapFlags` + `shouldAutoCapitalize` + `autoShiftArmed`) включается **только если
+    само поле запрашивает `TYPE_TEXT_FLAG_CAP_*`** (не в URL, email, паролях, поиске, терминале),
+    когда справа на текущей строке нет символов и строка пуста либо перед курсором конец предложения
+    **с пробелом** (`". "`, `"! "`, `"? "`). Нажатие `.` без пробела (`site.ru`, `user.name`, `./cmd`)
+    заглавную не включает.
+11. **Преселект Long-Press совпадает с микро-меткой и сохраняет частотность.** На левой половине
+    (`colFraction < 0.5f`) варианты идут слева направо `[v0, v1, ...]`, выбор начинается с `0` и
+    идёт вправо. На всей правой половине (`colFraction >= 0.5f`, `isRightSideKey`) варианты
+    раскладываются **справа налево** `[..., v1, v0]`, попап прижат `TopEnd`, а выбор начинается с
+    крайней правой ячейки (`v0` — самый частый символ) и уходит влево. Микро-метка в углу клавиши
+    всегда показывает `v0`.
 12. **Полоса буфера обмена.** Тап по тексту в `ClipboardOverlayBar` сразу вставляет содержимое
     (отдельной кнопки «Вставить» нет). Нормализация «ложной латиницы» (`ăĕçÿ → ӑӗҫӳ`) выполняется
     неявно при вставке; системный буфер обмена не перезаписывается.

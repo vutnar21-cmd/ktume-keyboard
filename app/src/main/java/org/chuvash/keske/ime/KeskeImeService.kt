@@ -9,7 +9,6 @@ import android.os.Build
 import android.os.VibrationEffect
 import android.os.Vibrator
 import android.os.VibratorManager
-import android.util.Log
 import android.view.KeyEvent
 import android.view.View
 import android.view.inputmethod.EditorInfo
@@ -51,6 +50,9 @@ class KeskeImeService : InputMethodService(), LifecycleOwner, ViewModelStoreOwne
 
     override fun onStartInputView(info: EditorInfo?, restarting: Boolean) {
         super.onStartInputView(info, restarting)
+        if (!restarting) {
+            PreferencesState.inputSessionId.value++
+        }
         updateEditorContextState()
     }
 
@@ -68,27 +70,23 @@ class KeskeImeService : InputMethodService(), LifecycleOwner, ViewModelStoreOwne
 
     private fun updateEditorContextState() {
         val ic = currentInputConnection
+        val capFlags = KeyboardLayouts.resolveEditorCapFlags(
+            currentInputEditorInfo?.inputType ?: EditorInfo.TYPE_NULL
+        )
         val beforeSeq = ic?.getTextBeforeCursor(64, 0)
         val afterSeq = runCatching { ic?.getTextAfterCursor(64, 0) }.getOrNull()
         val before = beforeSeq?.toString().orEmpty()
-        val emptyLine = KeyboardLayouts.isCursorOnEmptyLine(before, afterSeq?.toString().orEmpty())
-        // Часть редакторов (например, адресная строка браузера) не отдаёт текст через
-        // InputConnection — тогда о пустоте строки судим по ответу самого редактора
-        // getCursorCapsMode: 0 означает «заглавная здесь не нужна».
-        val editorAllowsCaps = beforeSeq != null || runCatching {
-            (ic?.getCursorCapsMode(
-                EditorInfo.TYPE_TEXT_FLAG_CAP_CHARACTERS or
-                    EditorInfo.TYPE_TEXT_FLAG_CAP_WORDS or
-                    EditorInfo.TYPE_TEXT_FLAG_CAP_SENTENCES
-            ) ?: 0) != 0
-        }.getOrDefault(false)
-        PreferencesState.isFieldEmpty.value = emptyLine && editorAllowsCaps
+        val after = afterSeq?.toString().orEmpty()
+
+        // Как в Gboard: если само поле ввода не запрашивает автозаглавную (URL, email, поиск,
+        // пароль, терминал, обычное поле без CAP_*), заглавная по умолчанию не включается.
+        val autoCap = when {
+            capFlags == 0 -> false
+            beforeSeq != null -> KeyboardLayouts.shouldAutoCapitalize(before, after, capFlags)
+            else -> runCatching { (ic?.getCursorCapsMode(capFlags) ?: 0) != 0 }.getOrDefault(false)
+        }
+        PreferencesState.shouldAutoCapitalize.value = autoCap
         PreferencesState.currentWord.value = KeyboardLayouts.extractCurrentWordBeforeCursor(before)
-        Log.d(
-            "KeskeCaps",
-            "before=${beforeSeq?.length ?: -1} after=${afterSeq?.length ?: -1} " +
-                "emptyLine=$emptyLine editorAllowsCaps=$editorAllowsCaps -> ${emptyLine && editorAllowsCaps}"
-        )
     }
 
     /**
@@ -150,11 +148,13 @@ class KeskeImeService : InputMethodService(), LifecycleOwner, ViewModelStoreOwne
 
         composeView.setContent {
             val prefs by PreferencesState.preferences.collectAsState()
-            val isFieldEmpty by PreferencesState.isFieldEmpty.collectAsState()
+            val shouldAutoCapitalize by PreferencesState.shouldAutoCapitalize.collectAsState()
+            val inputSessionId by PreferencesState.inputSessionId.collectAsState()
             val editorCurrentWord by PreferencesState.currentWord.collectAsState()
             KeyboardScreen(
                 prefs = prefs,
-                isFieldEmpty = isFieldEmpty,
+                shouldAutoCapitalize = shouldAutoCapitalize,
+                inputSessionId = inputSessionId,
                 editorCurrentWord = editorCurrentWord,
                 onUpdatePrefs = { updated ->
                     PreferencesRepository.update(this@KeskeImeService, updated)

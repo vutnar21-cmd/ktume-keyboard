@@ -51,7 +51,8 @@ internal enum class ToolbarOverlay {
 @Composable
 fun KeyboardScreen(
     prefs: KeyboardPreferences,
-    isFieldEmpty: Boolean = false,
+    shouldAutoCapitalize: Boolean = false,
+    inputSessionId: Int = 0,
     editorCurrentWord: String? = null,
     onUpdatePrefs: (KeyboardPreferences) -> Unit,
     onCommitText: (String) -> Unit,
@@ -82,21 +83,35 @@ fun KeyboardScreen(
     }
 
     var shiftState by remember {
-        mutableStateOf(if (prefs.autoCapitalize && isFieldEmpty) ShiftState.ONCE else ShiftState.OFF)
+        mutableStateOf(if (prefs.autoCapitalize && shouldAutoCapitalize) ShiftState.ONCE else ShiftState.OFF)
     }
     // Shift включён автоматически (а не нажатием пользователя) — только его можно снять автоматически
-    var autoShiftArmed by remember { mutableStateOf(prefs.autoCapitalize && isFieldEmpty) }
+    var autoShiftArmed by remember { mutableStateOf(prefs.autoCapitalize && shouldAutoCapitalize) }
+    var lastSeenSessionId by remember { mutableIntStateOf(inputSessionId) }
     var lastShiftTapMs by remember { mutableLongStateOf(0L) }
     var lastSpaceTapMs by remember { mutableLongStateOf(0L) }
     var lastCommittedWasSpace by remember { mutableStateOf(false) }
     var keyboardMode by remember { mutableStateOf(KeyboardMode.LETTERS) }
     var toolbarOverlay by remember { mutableStateOf(ToolbarOverlay.NONE) }
 
-    // Автозаглавная буква: включается на пустой строке и снимается, когда курсор уходит
-    // в строку с уже набранным текстом (иначе приходится вручную переключать регистр).
-    LaunchedEffect(isFieldEmpty, prefs.autoCapitalize) {
-        if (!prefs.autoCapitalize) return@LaunchedEffect
-        if (isFieldEmpty) {
+    // Автозаглавная буква (как в Gboard): реактивно следует контексту редактора и EditorInfo.
+    // При переключении на новое поле ввода сбрасывает незакреплённый Shift прошлого поля,
+    // а при уходе курсора в строку с текстом или стирании пробела после точки снимает авто-Shift.
+    LaunchedEffect(shouldAutoCapitalize, prefs.autoCapitalize, inputSessionId) {
+        val sessionChanged = inputSessionId != lastSeenSessionId
+        lastSeenSessionId = inputSessionId
+        if (sessionChanged && shiftState != ShiftState.CAPS_LOCK) {
+            shiftState = ShiftState.OFF
+            autoShiftArmed = false
+        }
+        if (!prefs.autoCapitalize) {
+            if (autoShiftArmed && shiftState == ShiftState.ONCE) {
+                shiftState = ShiftState.OFF
+                autoShiftArmed = false
+            }
+            return@LaunchedEffect
+        }
+        if (shouldAutoCapitalize) {
             if (shiftState == ShiftState.OFF) {
                 shiftState = ShiftState.ONCE
                 autoShiftArmed = true
@@ -580,10 +595,6 @@ fun KeyboardScreen(
                             onSwapClick = {},
                             onCommit = { committed ->
                                 commitTrackedText(committed)
-                                if (prefs.autoCapitalize && shiftState == ShiftState.OFF && (committed == "." || committed == "!" || committed == "?")) {
-                                    shiftState = ShiftState.ONCE
-                                    autoShiftArmed = false
-                                }
                             }
                         )
 
@@ -597,10 +608,6 @@ fun KeyboardScreen(
                             onClick = {
                                 onEnter()
                                 lastCommittedWasSpace = false
-                                if (prefs.autoCapitalize && shiftState == ShiftState.OFF) {
-                                    shiftState = ShiftState.ONCE
-                                }
-                                autoShiftArmed = false
                             }
                         )
                     }

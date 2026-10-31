@@ -89,15 +89,15 @@ internal fun KeyButton(
     onSwapClick: () -> Unit,
     onCommit: (String) -> Unit
 ) {
+    val displayedVariants = remember(variants, colFraction) {
+        KeyboardLayouts.getDisplayedLongPressVariants(variants, colFraction)
+    }
     var showLongPressPopup by remember { mutableStateOf(false) }
-    var selectedVariantIndex by remember { mutableIntStateOf(
-        KeyboardLayouts.initialLongPressVariantIndex(variants, colFraction)
-    ) }
+    var selectedVariantIndex by remember(variants, colFraction) {
+        mutableIntStateOf(KeyboardLayouts.initialLongPressVariantIndex(variants, colFraction))
+    }
     var isPressed by remember { mutableStateOf(false) }
 
-    val displayedVariants = remember(variants) {
-        KeyboardLayouts.getDisplayedLongPressVariants(variants)
-    }
     val currentLabel by rememberUpdatedState(label)
     val currentVariants by rememberUpdatedState(displayedVariants)
     val currentSwapMode by rememberUpdatedState(isSwapMode)
@@ -107,7 +107,7 @@ internal fun KeyButton(
     val currentOnCommit by rememberUpdatedState(onCommit)
 
     val density = LocalDensity.current
-    val stepPx = with(density) { 34.dp.toPx() }
+    val stepPx = with(density) { 28.dp.toPx() }
     val cancelMovePx = with(density) { 28.dp.toPx() }
     val hexCornerPx = with(density) { (prefs.keyCornerRadiusDp * 0.45f).coerceIn(4f, 9f).dp.toPx() }
 
@@ -245,11 +245,11 @@ internal fun KeyButton(
             },
         contentAlignment = Alignment.Center
     ) {
-        if (prefs.showSubLabels && variants.isNotEmpty() && !isSwapMode && !useHexShape) {
+        if (prefs.showSubLabels && displayedVariants.isNotEmpty() && !isSwapMode && !useHexShape) {
             Text(
-                text = KeyboardLayouts
-                    .getDisplayedLongPressVariants(variants)
-                    .getOrElse(KeyboardLayouts.initialLongPressVariantIndex(variants, colFraction)) { variants.first() },
+                text = displayedVariants.getOrElse(
+                    KeyboardLayouts.initialLongPressVariantIndex(variants, colFraction)
+                ) { displayedVariants.first() },
                 color = palette.hintText.copy(alpha = 0.75f),
                 fontFamily = KeskeFontFamily,
                 fontSize = 9.sp,
@@ -283,10 +283,10 @@ internal fun KeyButton(
 
         if (showLongPressPopup && displayedVariants.isNotEmpty()) {
             val popupOffsetY = with(density) { (-keyHeight - 8.dp).roundToPx() }
-            val popupAlignment = when {
-                colFraction < 0.24f -> Alignment.TopStart
-                colFraction > 0.76f -> Alignment.TopEnd
-                else -> Alignment.TopCenter
+            val popupAlignment = if (KeyboardLayouts.isRightSideKey(colFraction)) {
+                Alignment.TopEnd
+            } else {
+                Alignment.TopStart
             }
 
             Popup(
