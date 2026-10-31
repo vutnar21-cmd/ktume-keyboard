@@ -33,7 +33,9 @@ enum class KeskeIconType {
     SETTINGS,
     HIDE_KEYBOARD,
     IME_SWITCHER,
-    HEX_GRID
+    HEX_GRID,
+    ARROW_LEFT,
+    ARROW_RIGHT
 }
 
 @Composable
@@ -223,6 +225,26 @@ fun KeskeVectorIcon(
                     close()
                 }
                 drawPath(p, color = tint, style = stroke)
+            }
+
+            KeskeIconType.ARROW_LEFT -> {
+                drawLine(tint, Offset(w * 0.80f, h * 0.50f), Offset(w * 0.20f, h * 0.50f), stroke.width, StrokeCap.Round)
+                val head = Path().apply {
+                    moveTo(w * 0.44f, h * 0.26f)
+                    lineTo(w * 0.20f, h * 0.50f)
+                    lineTo(w * 0.44f, h * 0.74f)
+                }
+                drawPath(head, color = tint, style = stroke)
+            }
+
+            KeskeIconType.ARROW_RIGHT -> {
+                drawLine(tint, Offset(w * 0.20f, h * 0.50f), Offset(w * 0.80f, h * 0.50f), stroke.width, StrokeCap.Round)
+                val head = Path().apply {
+                    moveTo(w * 0.56f, h * 0.26f)
+                    lineTo(w * 0.80f, h * 0.50f)
+                    lineTo(w * 0.56f, h * 0.74f)
+                }
+                drawPath(head, color = tint, style = stroke)
             }
         }
     }

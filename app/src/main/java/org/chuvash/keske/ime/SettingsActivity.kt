@@ -524,6 +524,13 @@ class SettingsActivity : ComponentActivity() {
                                     onCheckedChange = { savePrefs(prefs.copy(autoCapitalize = it)) }
                                 )
                                 SettingToggleRow(
+                                    title = "Быстрый ввод 1-го символа свайпом вверх",
+                                    subtitle = "Короткий свайп вверх по клавише вводит главный символ из Long-Press с мини-превью (к→г, т→д, п→б, ш→ж, .→-)",
+                                    checked = prefs.swipeUpFirstVariant,
+                                    palette = activePalette,
+                                    onCheckedChange = { savePrefs(prefs.copy(swipeUpFirstVariant = it)) }
+                                )
+                                SettingToggleRow(
                                     title = "Звук при нажатии клавиш",
                                     subtitle = "Зависит от общей системной громкости и ползунка ниже",
                                     checked = prefs.soundEnabled,

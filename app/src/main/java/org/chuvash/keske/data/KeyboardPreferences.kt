@@ -28,6 +28,7 @@ data class KeyboardPreferences(
     val soundEnabled: Boolean = true,   // Звук при нажатии включён по умолчанию
     val vibrationEnabled: Boolean = true,
     val autoCapitalize: Boolean = true, // Автозаглавная на пустом поле и после точки
+    val swipeUpFirstVariant: Boolean = true, // Быстрый ввод 1-го символа из Long-Press свайпом вверх
     val doubleSpaceComma: Boolean = true, // Двойной пробел ставит запятую ", "
     val showHyphenKey: Boolean = true,    // Отдельная клавиша дефиса "-" на главной странице + свайп влево от точки
     val showParticlesStrip: Boolean = true, // Лента чувашских частиц и аффиксов включена по умолчанию

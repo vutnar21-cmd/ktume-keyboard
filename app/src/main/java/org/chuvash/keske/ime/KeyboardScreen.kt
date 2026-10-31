@@ -216,8 +216,10 @@ fun KeyboardScreen(
         val uniformKeyWidth = (boardMaxWidth - hGap * (maxCols - 1)) / maxCols
 
         Column(modifier = Modifier.fillMaxWidth()) {
-            // 1. Чистая верхняя панель без словарных подсказок (с сингармоническими частицами/аффиксами + Буфер, Смайлы, Настройки)
+            // 1. Единая однорядная верхняя панель (36 dp без скачка высоты):
+            // частицы/стрелки курсора/встроенная капсула буфера слева + [📋] [😊] [⚙️] справа
             TopToolbarStrip(
+                context = context,
                 lang = currentLang,
                 typedWord = activeTypedWord,
                 prefs = prefs,
@@ -243,21 +245,16 @@ fun KeyboardScreen(
                     onReplaceCurrentWord(particle)
                     lastCommittedWasSpace = true
                 },
+                onMoveCursor = { delta ->
+                    lastCommittedWasSpace = false
+                    onMoveCursor(delta)
+                },
+                onPasteText = { text ->
+                    commitTrackedText(text)
+                    toolbarOverlay = ToolbarOverlay.NONE
+                },
                 onOpenSettings = onOpenSettings
             )
-
-            // Всплывающая полоса буфера обмена (с конвертером ăĕçÿ -> ӑӗҫӳ)
-            if (toolbarOverlay == ToolbarOverlay.CLIPBOARD) {
-                Spacer(modifier = Modifier.height(4.dp))
-                ClipboardOverlayBar(
-                    context = context,
-                    palette = palette,
-                    onCommit = { text ->
-                        commitTrackedText(text)
-                        toolbarOverlay = ToolbarOverlay.NONE
-                    }
-                )
-            }
 
             Spacer(modifier = Modifier.height(4.dp))
 

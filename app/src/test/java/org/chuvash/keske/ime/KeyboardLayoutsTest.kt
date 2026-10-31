@@ -215,6 +215,7 @@ class KeyboardLayoutsTest {
         assertEquals(210, prefs.longPressDelayMs)
         assertTrue(prefs.showNumberRow)
         assertTrue(prefs.showParticlesStrip)
+        assertTrue(prefs.swipeUpFirstVariant)
     }
 
     @Test
@@ -330,5 +331,36 @@ class KeyboardLayoutsTest {
         assertTrue(KeyboardLayouts.shouldAutoCapitalize("Тавтапуҫ! ", "", capSentences))
         assertTrue(KeyboardLayouts.shouldAutoCapitalize("Ну ладно... ", "", capSentences))
         assertTrue(KeyboardLayouts.shouldAutoCapitalize("«Салам!» ", "", capSentences))
+    }
+
+    @Test
+    fun swipeUpFirstVariant_resolvesPrimaryVariantAndDirectionalCone() {
+        // 1-й вариант всегда совпадает с variants[0] (самым частым символом и микро-меткой),
+        // независимо от того, на левой или на правой половине находится клавиша
+        assertEquals("г", KeyboardLayouts.primaryLongPressVariant(KeyboardLayouts.getLongPressVariants(KeyboardLang.CHUVASH, "к", false)))
+        assertEquals("Г", KeyboardLayouts.primaryLongPressVariant(KeyboardLayouts.getLongPressVariants(KeyboardLang.CHUVASH, "к", true)))
+        assertEquals("д", KeyboardLayouts.primaryLongPressVariant(KeyboardLayouts.getLongPressVariants(KeyboardLang.CHUVASH, "т", false)))
+        assertEquals("ж", KeyboardLayouts.primaryLongPressVariant(KeyboardLayouts.getLongPressVariants(KeyboardLang.CHUVASH, "ш", false)))
+        assertEquals("-", KeyboardLayouts.primaryLongPressVariant(KeyboardLayouts.getLongPressVariants(KeyboardLang.CHUVASH, ".", false)))
+        assertEquals("-", KeyboardLayouts.primaryLongPressVariant(KeyboardLayouts.getLongPressVariants(KeyboardLang.CHUVASH, ",", false)))
+        assertEquals("–", KeyboardLayouts.primaryLongPressVariant(KeyboardLayouts.getLongPressVariants(KeyboardLang.CHUVASH, "-", false)))
+        assertEquals("¹", KeyboardLayouts.primaryLongPressVariant(KeyboardLayouts.getLongPressVariants(KeyboardLang.CHUVASH, "1", false)))
+        assertEquals(null, KeyboardLayouts.primaryLongPressVariant(emptyList()))
+
+        val threshold = 80f
+        // Обычное дрожание пальца при тапе или свайп вниз/вбок не активируют свайп вверх
+        assertFalse(KeyboardLayouts.isSwipeUpGesture(dx = 0f, dy = -18f, thresholdPx = threshold))
+        assertFalse(KeyboardLayouts.isSwipeUpGesture(dx = 0f, dy = 90f, thresholdPx = threshold))
+        assertFalse("Свайп влево (например . -> -) не должен перехватываться свайпом вверх",
+            KeyboardLayouts.isSwipeUpGesture(dx = -95f, dy = -30f, thresholdPx = threshold))
+
+        // Прямой и естественный дуговой свайп большим пальцем вверх — активируют
+        assertTrue(KeyboardLayouts.isSwipeUpGesture(dx = 0f, dy = -82f, thresholdPx = threshold))
+        assertTrue(KeyboardLayouts.isSwipeUpGesture(dx = 45f, dy = -90f, thresholdPx = threshold))
+        assertTrue(KeyboardLayouts.isSwipeUpGesture(dx = -45f, dy = -90f, thresholdPx = threshold))
+
+        // Гистерезис: небольшое смещение у границы удерживает превью, возврат вниз к клавише — отменяет
+        assertTrue(KeyboardLayouts.shouldKeepSwipeUpActive(dx = 20f, dy = -60f, thresholdPx = threshold))
+        assertFalse(KeyboardLayouts.shouldKeepSwipeUpActive(dx = 0f, dy = -35f, thresholdPx = threshold))
     }
 }

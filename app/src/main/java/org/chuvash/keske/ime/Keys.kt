@@ -49,8 +49,8 @@ import org.chuvash.keske.ui.theme.KeyboardPalette
 /**
  * МОДУЛЬ: Keys.kt — клавиши и их жесты.
  *
- * KeyButton — буква или символ с Long-Press и ведением пальца; BackspaceKey — удаление
- * с автоповтором и свайпом по слову; SpecialKey — функциональная клавиша;
+ * KeyButton — буква или символ с Long-Press (ведением пальца) и быстрым свайпом вверх для 1-го варианта;
+ * BackspaceKey — удаление с автоповтором и свайпом по слову; SpecialKey — функциональная клавиша;
  * SpacebarKey — пробел со свайпом курсора и двойным нажатием.
  */
 
@@ -92,7 +92,11 @@ internal fun KeyButton(
     val displayedVariants = remember(variants, colFraction) {
         KeyboardLayouts.getDisplayedLongPressVariants(variants, colFraction)
     }
+    val primaryVariant = remember(variants) {
+        KeyboardLayouts.primaryLongPressVariant(variants)
+    }
     var showLongPressPopup by remember { mutableStateOf(false) }
+    var showSwipeUpPreview by remember { mutableStateOf(false) }
     var selectedVariantIndex by remember(variants, colFraction) {
         mutableIntStateOf(KeyboardLayouts.initialLongPressVariantIndex(variants, colFraction))
     }
@@ -100,6 +104,8 @@ internal fun KeyButton(
 
     val currentLabel by rememberUpdatedState(label)
     val currentVariants by rememberUpdatedState(displayedVariants)
+    val currentPrimaryVariant by rememberUpdatedState(primaryVariant)
+    val currentSwipeUpEnabled by rememberUpdatedState(prefs.swipeUpFirstVariant)
     val currentSwapMode by rememberUpdatedState(isSwapMode)
     val currentLongPressMs by rememberUpdatedState(prefs.longPressDelayMs)
     val currentSwipeLeft by rememberUpdatedState(swipeLeftCommit)
@@ -108,6 +114,7 @@ internal fun KeyButton(
 
     val density = LocalDensity.current
     val stepPx = with(density) { 28.dp.toPx() }
+    val swipeUpThresholdPx = with(density) { 20.dp.toPx() }
     val cancelMovePx = with(density) { 28.dp.toPx() }
     val hexCornerPx = with(density) { (prefs.keyCornerRadiusDp * 0.45f).coerceIn(4f, 9f).dp.toPx() }
 
@@ -173,12 +180,13 @@ internal fun KeyButton(
                         val down = awaitFirstDown(requireUnconsumed = false)
                         isPressed = true
                         var longPressTriggered = false
+                        var swipeUpActive = false
                         var totalDx = 0f
                         var totalDy = 0f
 
                         val longPressJob = launch {
                             delay(currentLongPressMs.toLong().coerceIn(130L, 500L))
-                            if (!currentSwapMode && currentVariants.isNotEmpty()) {
+                            if (!currentSwapMode && !swipeUpActive && currentVariants.isNotEmpty()) {
                                 longPressTriggered = true
                                 selectedVariantIndex = KeyboardLayouts.computeLongPressSelectedIndex(
                                     variants = currentVariants,
@@ -208,7 +216,24 @@ internal fun KeyButton(
                                 totalDx = dx
                                 totalDy = dy
 
-                                if (!longPressTriggered && (abs(dx) > cancelMovePx || abs(dy) > cancelMovePx)) {
+                                val canSwipeUp = currentSwipeUpEnabled && !currentSwapMode && currentPrimaryVariant != null
+                                if (!longPressTriggered && canSwipeUp) {
+                                    if (!swipeUpActive && KeyboardLayouts.isSwipeUpGesture(dx, dy, swipeUpThresholdPx)) {
+                                        longPressJob.cancel()
+                                        swipeUpActive = true
+                                        showSwipeUpPreview = true
+                                        change.consume()
+                                    } else if (swipeUpActive) {
+                                        if (KeyboardLayouts.shouldKeepSwipeUpActive(dx, dy, swipeUpThresholdPx)) {
+                                            change.consume()
+                                        } else {
+                                            swipeUpActive = false
+                                            showSwipeUpPreview = false
+                                        }
+                                    }
+                                }
+
+                                if (!longPressTriggered && !swipeUpActive && (abs(dx) > cancelMovePx || abs(dy) > cancelMovePx)) {
                                     longPressJob.cancel()
                                 }
 
@@ -225,6 +250,7 @@ internal fun KeyButton(
                         } finally {
                             longPressJob.cancel()
                             isPressed = false
+                            showSwipeUpPreview = false
                         }
 
                         if (cancelled) {
@@ -235,6 +261,8 @@ internal fun KeyButton(
                             val chosen = currentVariants.getOrElse(selectedVariantIndex) { currentVariants.first() }
                             showLongPressPopup = false
                             currentOnCommit(chosen)
+                        } else if (swipeUpActive && currentPrimaryVariant != null) {
+                            currentOnCommit(currentPrimaryVariant!!)
                         } else if (currentSwipeLeft != null && totalDx < -cancelMovePx && abs(totalDx) > abs(totalDy)) {
                             currentOnCommit(currentSwipeLeft!!)
                         } else {
@@ -245,11 +273,9 @@ internal fun KeyButton(
             },
         contentAlignment = Alignment.Center
     ) {
-        if (prefs.showSubLabels && displayedVariants.isNotEmpty() && !isSwapMode && !useHexShape) {
+        if (prefs.showSubLabels && primaryVariant != null && !isSwapMode && !useHexShape) {
             Text(
-                text = displayedVariants.getOrElse(
-                    KeyboardLayouts.initialLongPressVariantIndex(variants, colFraction)
-                ) { displayedVariants.first() },
+                text = primaryVariant,
                 color = palette.hintText.copy(alpha = 0.75f),
                 fontFamily = KeskeFontFamily,
                 fontSize = 9.sp,
@@ -280,6 +306,41 @@ internal fun KeyButton(
             fontSize = prefs.fontSizeSp.sp,
             fontWeight = FontWeight.Bold
         )
+
+        if (showSwipeUpPreview && !showLongPressPopup && primaryVariant != null) {
+            val previewOffsetY = with(density) { (-keyHeight - 8.dp).roundToPx() }
+            Popup(
+                alignment = Alignment.TopCenter,
+                offset = IntOffset(0, previewOffsetY),
+                properties = PopupProperties(focusable = false, clippingEnabled = true),
+                onDismissRequest = { showSwipeUpPreview = false }
+            ) {
+                Box(
+                    modifier = Modifier
+                        .shadow(10.dp, RoundedCornerShape(13.dp))
+                        .clip(RoundedCornerShape(13.dp))
+                        .background(palette.popupBg)
+                        .border(1.5.dp, palette.accentBg.copy(alpha = 0.7f), RoundedCornerShape(13.dp))
+                        .padding(4.dp)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(36.dp)
+                            .clip(RoundedCornerShape(9.dp))
+                            .background(palette.accentBg),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = primaryVariant,
+                            color = palette.accentText,
+                            fontFamily = KeskeFontFamily,
+                            fontSize = 18.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                }
+            }
+        }
 
         if (showLongPressPopup && displayedVariants.isNotEmpty()) {
             val popupOffsetY = with(density) { (-keyHeight - 8.dp).roundToPx() }

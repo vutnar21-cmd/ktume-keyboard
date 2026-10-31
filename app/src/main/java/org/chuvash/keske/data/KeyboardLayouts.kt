@@ -2,6 +2,7 @@ package org.chuvash.keske.data
 
 import android.view.inputmethod.EditorInfo
 import java.text.BreakIterator
+import kotlin.math.abs
 
 /**
  * МОДУЛЬ: KeyboardLayouts.kt
@@ -404,6 +405,31 @@ object KeyboardLayouts {
         val count = variants.size.coerceAtMost(maxCount)
         if (count == 0) return 0
         return if (isRightSideKey(colFraction)) count - 1 else 0
+    }
+
+    /**
+     * Главный (1-й по частотности) символ из списка Long-Press: он же показывается на микро-метке,
+     * вставляется при удержании без движения и при быстром свайпе вверх (независимо от стороны экрана).
+     */
+    fun primaryLongPressVariant(variants: List<String>): String? = variants.firstOrNull()
+
+    /**
+     * Проверяет, прошёл ли палец порог быстрого свайпа вверх для выбора 1-го символа из Long-Press:
+     * смещение вверх не менее [thresholdPx] (`dy <= -thresholdPx`) в направленном конусе вверх
+     * (`|dy| >= |dx| * 1.15`), чтобы не путать с горизонтальным свайпом (например, `. → -`) и дрожанием тапа.
+     */
+    fun isSwipeUpGesture(dx: Float, dy: Float, thresholdPx: Float): Boolean {
+        if (thresholdPx <= 0f) return false
+        return dy <= -thresholdPx && abs(dy) >= abs(dx) * 1.15f
+    }
+
+    /**
+     * Гистерезис удержания активного свайпа вверх: после пересечения порога превью остаётся активным,
+     * пока палец не вернули заметно вниз к клавише (`dy > -0.65 * thresholdPx`) или сильно вбок.
+     */
+    fun shouldKeepSwipeUpActive(dx: Float, dy: Float, thresholdPx: Float): Boolean {
+        if (thresholdPx <= 0f) return false
+        return dy <= -(thresholdPx * 0.65f) && abs(dy) >= abs(dx) * 0.9f
     }
 
     /**

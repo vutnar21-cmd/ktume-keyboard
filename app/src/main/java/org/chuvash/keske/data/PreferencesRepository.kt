@@ -76,6 +76,7 @@ object PreferencesRepository {
     private val KEY_SOUND = booleanPreferencesKey("sound_enabled_v3")
     private val KEY_VIBRATE = booleanPreferencesKey("vibration_enabled")
     private val KEY_AUTO_CAP = booleanPreferencesKey("auto_capitalize")
+    private val KEY_SWIPE_UP_FIRST = booleanPreferencesKey("swipe_up_first_v1")
     private val KEY_DOUBLE_SPACE_COMMA = booleanPreferencesKey("double_space_comma")
     private val KEY_SHOW_HYPHEN = booleanPreferencesKey("show_hyphen_key")
     private val KEY_PARTICLES = booleanPreferencesKey("show_particles_v5")
@@ -132,6 +133,7 @@ object PreferencesRepository {
                     soundEnabled = p[KEY_SOUND] ?: true,
                     vibrationEnabled = p[KEY_VIBRATE] ?: true,
                     autoCapitalize = p[KEY_AUTO_CAP] ?: true,
+                    swipeUpFirstVariant = p[KEY_SWIPE_UP_FIRST] ?: true,
                     doubleSpaceComma = p[KEY_DOUBLE_SPACE_COMMA] ?: true,
                     showHyphenKey = p[KEY_SHOW_HYPHEN] ?: true,
                     showParticlesStrip = p[KEY_PARTICLES] ?: true,
@@ -177,6 +179,7 @@ object PreferencesRepository {
                     p[KEY_SOUND] = updated.soundEnabled
                     p[KEY_VIBRATE] = updated.vibrationEnabled
                     p[KEY_AUTO_CAP] = updated.autoCapitalize
+                    p[KEY_SWIPE_UP_FIRST] = updated.swipeUpFirstVariant
                     p[KEY_DOUBLE_SPACE_COMMA] = updated.doubleSpaceComma
                     p[KEY_SHOW_HYPHEN] = updated.showHyphenKey
                     p[KEY_PARTICLES] = updated.showParticlesStrip
