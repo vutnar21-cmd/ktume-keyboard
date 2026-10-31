@@ -14,9 +14,9 @@ import org.chuvash.keske.R
 /**
  * МОДУЛЬ: ThemePalettes.kt
  * Здесь описаны:
- * 1) Единый шрифт Comfortaa (KĕskeFontFamily) и типографика приложения;
- * 2) Цветовые палитры клавиатуры и сквозная синхронизация с темой приложения (включая тёмную тему);
- * 3) Класс настроек KeyboardPreferences и сохранение на диск через Jetpack DataStore.
+ * 1) Единый шрифт Comfortaa (KeskeFontFamily) и типографика приложения;
+ * 2) 7 цветовых палитр клавиатуры (KeskePalettes) и сквозная конвертация в Material 3 ColorScheme.
+ * Настройки (KeyboardPreferences) и хранилище DataStore (PreferencesRepository) вынесены в пакет `data`.
  */
 val KeskeFontFamily = FontFamily(
     Font(R.font.comfortaa, FontWeight.Normal),
