@@ -245,6 +245,22 @@ class KeyboardLayoutsTest {
         assertEquals(0, KeyboardLayouts.resolveEditorCapFlags(EditorInfo.TYPE_NULL))
         assertEquals(0, KeyboardLayouts.resolveEditorCapFlags(EditorInfo.TYPE_CLASS_TEXT))
         assertEquals(0, KeyboardLayouts.resolveEditorCapFlags(EditorInfo.TYPE_CLASS_NUMBER))
+        // TYPE_NUMBER_FLAG_DECIMAL (0x2000) совпадает по биту с TYPE_TEXT_FLAG_CAP_WORDS — должен давать 0
+        assertEquals(
+            0,
+            KeyboardLayouts.resolveEditorCapFlags(
+                EditorInfo.TYPE_CLASS_NUMBER or EditorInfo.TYPE_NUMBER_FLAG_DECIMAL
+            )
+        )
+
+        // Реальный кейс Compose-полей (Google Contacts First name: 0x202060 без бита TYPE_CLASS_TEXT)
+        val composePersonName = EditorInfo.TYPE_TEXT_VARIATION_PERSON_NAME or
+            EditorInfo.TYPE_TEXT_FLAG_CAP_WORDS or
+            EditorInfo.TYPE_TEXT_FLAG_AUTO_COMPLETE
+        assertEquals(
+            EditorInfo.TYPE_TEXT_FLAG_CAP_WORDS,
+            KeyboardLayouts.resolveEditorCapFlags(composePersonName)
+        )
 
         // URL, email и пароли всегда запрещают автозаглавную, даже если ошибочно передан CAP_SENTENCES
         val badUri = EditorInfo.TYPE_CLASS_TEXT or

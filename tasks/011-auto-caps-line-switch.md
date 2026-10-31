@@ -113,3 +113,8 @@ APK собран и передан владельцу: `keske-011-autocaps-debug
   убран спам `Log.d("KeskeCaps")` из `KeskeImeService`.
 - Добавлены unit-тесты `resolveEditorCapFlags_respectsGboardFieldRules` и
   `shouldAutoCapitalize_preventsCapsInEmailsUrlsCommandsAndMidLine`.
+- **Живой UI-тест на эмуляторе `Medium_Phone_API_37.0`:** проверены `SettingsActivity` (`Салам.орк`
+  со строчной после `.`, автозаглавная после `". "`), поиск настроек Android (`0x300001` — со строчной
+  по умолчанию) и Google Contacts (*First name* `0x202060` → Shift `ONCE`, переключение в *Email*
+  `0x8021` → мгновенный сброс Shift в `OFF`, ввод `иван.пет` со строчной). Учтён нюанс Compose-полей
+  с `inputClass == 0` при `inputType != 0`.

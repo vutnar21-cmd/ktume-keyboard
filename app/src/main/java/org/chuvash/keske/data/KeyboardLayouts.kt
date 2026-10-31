@@ -593,7 +593,11 @@ object KeyboardLayouts {
      */
     fun resolveEditorCapFlags(inputType: Int): Int {
         if (inputType == EditorInfo.TYPE_NULL) return 0
-        if ((inputType and EditorInfo.TYPE_MASK_CLASS) != EditorInfo.TYPE_CLASS_TEXT) return 0
+        val inputClass = inputType and EditorInfo.TYPE_MASK_CLASS
+        // Некоторые Compose-поля (например, Google Contacts First name: 0x202060) задают текстовые
+        // вариации и CAP_*-флаги без бита TYPE_CLASS_TEXT (inputClass == 0 при inputType != 0).
+        // Числовые/телефонные/датовые классы используют биты 0x1000/0x2000 под свои флаги — их отсекаем.
+        if (inputClass != EditorInfo.TYPE_CLASS_TEXT && inputClass != EditorInfo.TYPE_NULL) return 0
         val variation = inputType and EditorInfo.TYPE_MASK_VARIATION
         if (variation == EditorInfo.TYPE_TEXT_VARIATION_URI ||
             variation == EditorInfo.TYPE_TEXT_VARIATION_EMAIL_ADDRESS ||
