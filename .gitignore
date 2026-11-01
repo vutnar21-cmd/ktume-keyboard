@@ -10,8 +10,11 @@ captures/
 .externalNativeBuild/
 .cxx/
 
-# Локальная конфигурация SDK (у каждого своя)
+# Локальная конфигурация SDK и ключи подписи релиза (НИКОГДА не коммитить в Git!)
 local.properties
+keystore.properties
+*.jks
+*.keystore
 
 # Служебные каталоги Kotlin
 .kotlin/

@@ -3,7 +3,7 @@
   МОДУЛЬ: AndroidManifest.xml
   Главный конфигурационный файл Android-приложения.
   Здесь регистрируются иконка приложения (@mipmap/ic_launcher),
-  экран настроек (SettingsActivity) и сервис клавиатуры (KeskeImeService).
+  экран настроек (SettingsActivity) и сервис клавиатуры (KesjeImeService).
 -->
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
@@ -17,7 +17,7 @@
         android:supportsRtl="true"
         android:theme="@android:style/Theme.Material.NoActionBar">
 
-        <!-- 1. Экран настроек, который открывается по нажатию на значок "Кеске" в меню телефона -->
+        <!-- 1. Экран настроек, который открывается по нажатию на значок "Кӗсье Тӳме" в меню телефона -->
         <activity
             android:name=".ime.SettingsActivity"
             android:exported="true"
@@ -30,7 +30,7 @@
 
         <!-- 2. Системный сервис клавиатуры. Обязательно требует разрешение BIND_INPUT_METHOD -->
         <service
-            android:name=".ime.KeskeImeService"
+            android:name=".ime.KesjeImeService"
             android:exported="true"
             android:label="@string/ime_name"
             android:permission="android.permission.BIND_INPUT_METHOD">

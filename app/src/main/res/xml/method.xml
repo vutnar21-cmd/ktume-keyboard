@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- Описание языковых подтипов клавиатуры для системных настроек Android -->
 <input-method xmlns:android="http://schemas.android.com/apk/res/android"
-    android:settingsActivity="org.chuvash.keske.ime.SettingsActivity">
+    android:settingsActivity="org.chuvash.ktume.ime.SettingsActivity">
 
     <subtype
         android:label="@string/subtype_chuvash"

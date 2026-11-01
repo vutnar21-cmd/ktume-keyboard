@@ -1,22 +1,84 @@
-// Файл сборки модуля :app — здесь настраивается версия SDK и подключаются библиотеки Jetpack Compose
+// Файл сборки модуля :app — здесь настраивается версия SDK, релизная подпись и библиотеки Jetpack Compose
+import java.util.Properties
+import org.gradle.api.tasks.bundling.AbstractArchiveTask
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
     id("com.android.application")
-    id("org.jetbrains.kotlin.android")
     id("org.jetbrains.kotlin.plugin.compose")
 }
 
+// Опциональное чтение локального ключа подписи релиза из keystore.properties или переменных окружения.
+// Если ключа нет (например, при сборке на сервере F-Droid из исходников), assembleRelease собирает
+// чистый детерминированный APK для сверки Reproducible Builds.
+val keystorePropertiesFile = rootProject.file("keystore.properties")
+val keystoreProperties = Properties().apply {
+    if (keystorePropertiesFile.isFile) {
+        keystorePropertiesFile.inputStream().use { load(it) }
+    }
+}
+val releaseStoreFilePath: String? =
+    keystoreProperties.getProperty("storeFile")?.takeIf { it.isNotBlank() }
+        ?: System.getenv("KESJE_KEYSTORE_PATH")?.takeIf { it.isNotBlank() }
+val releaseStorePassword: String? =
+    keystoreProperties.getProperty("storePassword")?.takeIf { it.isNotBlank() }
+        ?: System.getenv("KESJE_KEYSTORE_PASSWORD")?.takeIf { it.isNotBlank() }
+val releaseKeyAlias: String? =
+    keystoreProperties.getProperty("keyAlias")?.takeIf { it.isNotBlank() }
+        ?: System.getenv("KESJE_KEY_ALIAS")?.takeIf { it.isNotBlank() }
+val releaseKeyPassword: String? =
+    keystoreProperties.getProperty("keyPassword")?.takeIf { it.isNotBlank() }
+        ?: System.getenv("KESJE_KEY_PASSWORD")?.takeIf { it.isNotBlank() }
+val releaseStoreFile = releaseStoreFilePath?.let { rootProject.file(it) }
+val hasReleaseSigning = releaseStoreFile?.isFile == true &&
+    !releaseStorePassword.isNullOrEmpty() &&
+    !releaseKeyAlias.isNullOrEmpty() &&
+    !releaseKeyPassword.isNullOrEmpty()
+
 android {
-    namespace = "org.chuvash.keske"
-    compileSdk = 35
+    namespace = "org.chuvash.ktume"
+    compileSdk = 37
 
     defaultConfig {
-        applicationId = "org.chuvash.keske"
+        applicationId = "org.chuvash.ktume"
         minSdk = 26 // Поддержка всех телефонов с Android 8.0 и новее
-        targetSdk = 35
+        targetSdk = 37
         versionCode = 4
         versionName = "1.3.0"
+    }
+
+    // Требования F-Droid и воспроизводимых сборок (Reproducible Builds):
+    // не вшиваем зашифрованный ключом Google блок зависимостей.
+    dependenciesInfo {
+        includeInApk = false
+        includeInBundle = false
+    }
+
+    signingConfigs {
+        if (hasReleaseSigning) {
+            create("release") {
+                storeFile = releaseStoreFile
+                storePassword = releaseStorePassword
+                keyAlias = releaseKeyAlias
+                keyPassword = releaseKeyPassword
+            }
+        }
+    }
+
+    buildTypes {
+        release {
+            // Не вшиваем META-INF/version-control-info.textproto для побайтовой воспроизводимости в F-Droid
+            vcsInfo.include = false
+            isMinifyEnabled = true
+            isShrinkResources = true
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro"
+            )
+            if (hasReleaseSigning) {
+                signingConfig = signingConfigs.getByName("release")
+            }
+        }
     }
 
     buildFeatures {
@@ -33,6 +95,11 @@ kotlin {
     compilerOptions {
         jvmTarget.set(JvmTarget.JVM_17)
     }
+}
+
+tasks.withType<AbstractArchiveTask>().configureEach {
+    isPreserveFileTimestamps = false
+    isReproducibleFileOrder = true
 }
 
 dependencies {

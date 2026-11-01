@@ -1,12 +1,13 @@
-# Кеске (Kĕske) — чувашская клавиатура для Android
+# Кӗсье Тӳме / кТӳме (Kĕsje Tüme / kTüme) — чувашская клавиатура для Android
 
-**Кеске / Кӗске** — кастомизируемая автономная многоязычная клавиатура (IME) для Android:
+**Кӗсье Тӳме** (кратко **кТӳме** / **kTüme**) — кастомизируемая автономная многоязычная клавиатура (IME) для Android:
 чувашский (`Чӑвашла`), русский, латиница (`Latina`) и греческий. Приложение работает полностью
 локально (без доступа в интернет, аналитики и облачных сервисов).
 
-- Пакет: `org.chuvash.keske` (`v1.3.0`, `versionCode = 4`)
-- `minSdk = 26` (Android 8.0), `targetSdk = 35`, `compileSdk = 35`
-- Kotlin `2.0.21`, AGP `8.7.3`, Jetpack Compose (Material 3, BOM `2024.09.00`), DataStore `1.1.1`
+- Пакет: `org.chuvash.ktume` (`v1.3.0`, `versionCode = 4`)
+- Репозиторий: https://github.com/vutnar21-cmd/ktume-keyboard
+- `minSdk = 26` (Android 8.0), `targetSdk = 37` (Android 17), `compileSdk = 37`
+- Kotlin `2.4.21`, AGP `9.5.0`, Jetpack Compose (Material 3, BOM `2024.09.00`), DataStore `1.1.1`
 
 ---
 
@@ -20,19 +21,22 @@
    ширина соты считается из фактического числа колонок — ряды не выезжают за край.
    Раскладки другого размера (русская 31, `FULL_28`, греческая 25, пользовательские) распределяются
    по четырём рядам **без потери и без подмены символов**.
-3. **Долгое нажатие с ведением пальца и быстрый свайп вверх.**
+3. **Долгое нажатие, «капля» нажатия и быстрый свайп вверх.**
+   - **Всплывающая «капля» (`showKeyPressPopup`, включена по умолчанию):** при касании над клавишей
+     показывается превью буквы, которое при свайпе вверх на `20 dp` бесшовно превращается в превью
+     1-го акцентированного символа с микро-тиком вибрации.
    - **Свайп вверх (`swipeUpFirstVariant`, включён по умолчанию во вкладке «Ввод»):** короткий
-     росчерк вверх по любой клавише с вариантами Long-Press сразу показывает мини-превью и вводит
-     самый частый 1-й вариант (`variants[0]`: `к→г`, `т→д`, `п→б`, `ш→ж`, `с→з`, `ч→ц`, `е→ё`,
-     `ы→ь`, `.→-`) без ожидания таймера удержания.
-   - **Долгое нажатие:** зажатие открывает `Popup` со всеми вариантами; палец ведётся влево/вправо
-     без отрыва. На всей правой половине клавиатуры (`colFraction >= 0.5f`) `Popup` раскрывается
-     влево, а варианты раскладываются справа налево с сохранением частотности: самый частый символ
-     (`variants[0]`, совпадающий с микро-меткой) оказывается прямо над клавишей, а ведение пальца
-     влево выбирает остальные без упора в границу экрана.
-4. **Символы и цифры в духе Gboard.** Общий цифровой ряд `1–0` сохраняет одинаковую высоту страниц;
-   `?123` — частотные символы (`10 + 10 + 7`), `=\<` — валюты, математика и типографика,
-   `1234` — телефонная сетка `3 × 4` с колонкой `⌫ / − / + / ↵` и нижним рядом `?123 · пробел · АБВ`.
+     росчерк вверх по любой клавише с вариантами Long-Press сразу вводит самый частый 1-й вариант
+     (`variants[0]`: `к→г`, `т→д`, `п→б`, `ш→ж`, `с→з`, `ч→ц`, `е→ё`, `ы→ь`, `.→-`) без ожидания таймера.
+   - **Долгое нажатие:** зажатие открывает `Popup` со всеми вариантами (шаг ведения пальца `40 dp` с
+     тактильным тиком); на всей правой половине клавиатуры (`colFraction >= 0.5f`) варианты раскладываются
+     справа налево с сохранением частотности. Удержание `🌐` открывает быстрое меню раскладок и системных клавиатур.
+4. **Бесшовные хитбоксы, контекстный `Enter` и авто-Numpad.**
+   - Визуальные зазоры между клавишами не содержат «мёртвых зон»: хитбокс каждой прямоугольной клавиши
+     владеет половиной зазора (`hGap / 2`, `vGap / 2`) и имеет живую подсветку нажатия (`isPressed`).
+   - Общий цифровой ряд `1–0` сохраняет одинаковую высоту страниц `?123` и `=\<`. В числовых и телефонных
+     полях автоматически открывается телефонная сетка `1234` (`3 × 4`), а клавиша `Enter` меняет векторную
+     иконку под контекст поля (`🔍 Поиск`, `➤ Отправить`, `→ Перейти`, `⇥ Далее`, `✓ Готово`, `↵ Абзац`).
 5. **Чувашская морфология и типографика.**
    - Движок сингармонизма (`ChuvashMorphemes` + `MorphemeEngine`): подбирает мягкие/твёрдые формы
      частиц (`-и?`, `-ши?`, `-ха/-хе`, `-ҫкӗ`, `-тӑр/-тӗр`), множественного числа (`+сем`),
@@ -67,6 +71,7 @@
 | Задержка Long-Press | `210 мс` |
 | Нижний отступ | `20 dp` |
 | Цифровой ряд / лента частиц / свайп вверх | включены |
+| Всплывающая «капля» / компактный альбомный режим | включены |
 | Микро-метки в углах клавиш | выключены |
 | Автозаглавные имена (эксперимент) | выключены |
 
@@ -75,45 +80,51 @@
 ## 2. Структура проекта
 
 ```text
-keske-keyboard/
+ktume-keyboard/
 ├── AGENT.md                          # Обязательные правила и инварианты для ИИ-агентов
 ├── README.md
-├── build.gradle.kts                  # AGP 8.7.3, Kotlin 2.0.21, compose-плагин
+├── build.gradle.kts                  # AGP 9.5.0, Kotlin 2.4.21 (built-in + compose-плагин)
 ├── settings.gradle.kts
 ├── gradle.properties                 # JVM-параметры, путь к JDK 21, kotlin.incremental=false
 ├── tasks/                            # Каталог задач на развитие и индекс статусов (tasks/README.md)
 └── app/
-    ├── build.gradle.kts              # SDK 26..35, Compose BOM, DataStore
+    ├── build.gradle.kts              # SDK 26..37, Compose BOM, DataStore
     └── src/
         ├── main/
-        │   ├── AndroidManifest.xml   # SettingsActivity (LAUNCHER) + KeskeImeService (BIND_INPUT_METHOD)
+        │   ├── AndroidManifest.xml   # SettingsActivity (LAUNCHER) + KesjeImeService (BIND_INPUT_METHOD)
         │   ├── res/
         │   │   ├── font/comfortaa.ttf
         │   │   ├── values/strings.xml    # app_name, ime_name, названия подтипов
         │   │   └── xml/method.xml        # подтипы: cv_RU, ru_RU, en_US, el_GR
-        │   └── java/org/chuvash/keske/
+        │   └── java/org/chuvash/ktume/
         │       ├── ui/theme/
         │       │   └── ThemePalettes.kt        # шрифт Comfortaa, 7 палитр и Material 3 ColorScheme
         │       ├── data/
         │       │   ├── ChuvashMorphemes.kt     # словарь чувашских частиц и аффиксов
         │       │   ├── ChuvashNames.kt         # базовый словарь имён собственных
-        │       │   ├── KeyboardLayouts.kt      # раскладки, пресеты, слои, Long-Press, Unicode-утилиты
-        │       │   ├── KeyboardPreferences.kt  # модель настроек клавиатуры
+        │       │   ├── EditorTextLogic.kt      # Unicode-графемы, автозаглавная, контекст поля, геометрия
+        │       │   ├── EmojiCatalog.kt         # локальный каталог эмодзи по 6 категориям
+        │       │   ├── KeyboardLayouts.kt      # раскладки, пресеты, слои символов, Numpad, Long-Press
+        │       │   ├── KeyboardPreferences.kt  # неизменяемая модель настроек клавиатуры
         │       │   ├── MorphemeEngine.kt       # сингармонизм и правила стыка морфем
         │       │   └── PreferencesRepository.kt# PreferencesState и хранилище DataStore
         │       └── ime/
         │           ├── EmojiPickerPage.kt      # полноразмерная страница эмодзи
+        │           ├── FunctionalKeys.kt       # BackspaceKey, SpecialKey, SpacebarKey
         │           ├── HoneycombHexGrid.kt     # 4-рядная паркетная сетка сот
-        │           ├── KeskeIcons.kt           # векторные иконки на Canvas
-        │           ├── KeskeImeService.kt      # InputMethodService, InputConnection, звук/вибро
-        │           ├── KeyboardScreen.kt       # корневой экран клавиатуры и переключение режимов
-        │           ├── Keys.kt                 # KeyButton, BackspaceKey, SpecialKey, SpacebarKey
+        │           ├── KesjeIcons.kt           # векторные иконки на Canvas
+        │           ├── KesjeImeService.kt      # InputMethodService, InputConnection, звук/вибро
+        │           ├── KeyboardRows.kt         # цифровой ряд, ряды букв/символов, нижний бар и меню 🌐
+        │           ├── KeyboardScreen.kt       # корневой экран клавиатуры, режимы и автомат Shift
+        │           ├── Keys.kt                 # поверхность клавиш (Rect/Hex), KeyButton и попапы
         │           ├── NumpadGridView.kt       # телефонная панель 3 × 4
-        │           ├── SettingsActivity.kt     # экран настроек с 5 вкладками и живым стендом
+        │           ├── SettingsActivity.kt     # каркас экрана настроек с 5 вкладками
         │           ├── SettingsComponents.kt   # карточки секций, превью палитр, тумблеры, ползунки
+        │           ├── SettingsPreviewBench.kt # живое тестовое поле и закреплённый стенд клавиатуры
         │           ├── SettingsRowEditor.kt    # интерактивный конструктор рядов раскладки
-        │           └── Toolbar.kt              # верхняя полоса частиц и полоса буфера обмена
-        └── test/java/org/chuvash/keske/
+        │           ├── SettingsSections.kt     # содержимое 5 вкладок настроек
+        │           └── Toolbar.kt              # однорядная верхняя полоса (36 dp): частицы / правка / буфер
+        └── test/java/org/chuvash/ktume/
             ├── data/ChuvashNamesTest.kt
             ├── data/MorphemeEngineTest.kt
             └── ime/KeyboardLayoutsTest.kt
@@ -121,41 +132,60 @@ keske-keyboard/
 
 ### Пакеты и ответственность
 
-- **`ui.theme`** — визуальная тема (`KeskeFontFamily`, `KeskeTypography`, 7 палитр `KeskePalettes`
+- **`ui.theme`** — визуальная тема (`KesjeFontFamily`, `KesjeTypography`, 7 палитр `KesjePalettes`
   и `toColorScheme()`). Не зависит от `data` и `ime`.
-- **`data`** — чистые данные и хранение без зависимости от Android IME: `KeyboardPreferences`,
-  `PreferencesState` / `PreferencesRepository` (DataStore с версионированными ключами `_v5`/`_v6`
-  и гейтом загрузки `loaded`), `KeyboardLayouts`, словарь и движок морфем (`ChuvashMorphemes`,
-  `MorphemeEngine`), словарь имён (`ChuvashNames`).
-- **`ime`** — сервис клавиатуры `KeskeImeService`, модульный Compose-интерфейс клавиатуры
-  (`KeyboardScreen`, `Keys`, `Toolbar`, `HoneycombHexGrid`, `NumpadGridView`, `EmojiPickerPage`,
-  `KeskeIcons`) и студия кастомизации (`SettingsActivity`, `SettingsComponents`, `SettingsRowEditor`).
+- **`data`** — чистые данные, текстовые алгоритмы и хранение без зависимости от Android IME:
+  `KeyboardPreferences`, `PreferencesState` / `PreferencesRepository` (DataStore с версионированными
+  ключами и гейтом загрузки `loaded`), `KeyboardLayouts`, `EditorTextLogic`, `EmojiCatalog`, словарь и
+  движок морфем (`ChuvashMorphemes`, `MorphemeEngine`), словарь имён (`ChuvashNames`).
+- **`ime`** — сервис клавиатуры `KesjeImeService`, модульный Compose-интерфейс клавиатуры
+  (`KeyboardScreen`, `KeyboardRows`, `Keys`, `FunctionalKeys`, `Toolbar`, `HoneycombHexGrid`,
+  `NumpadGridView`, `EmojiPickerPage`, `KesjeIcons`) и студия кастомизации (`SettingsActivity`,
+  `SettingsSections`, `SettingsPreviewBench`, `SettingsComponents`, `SettingsRowEditor`).
 
 ---
 
 ## 3. Сборка и проверка
 
-Gradle-демону и Android Lint нужен JDK 21 (на JDK 25 `lint` падает в `JavaVersion.parse`).
-Путь прописан в `gradle.properties` (`org.gradle.java.home`), для запуска wrapper достаточно:
+Gradle-демону и Android Lint нужен JDK 21 (локальный путь `org.gradle.java.home` задаётся в
+пользовательском `~/.gradle/gradle.properties`, чтобы репозиторий оставался переносимым на Linux / F-Droid):
 
 ```bash
 export JAVA_HOME="C:/Program Files/COMSOL/COMSOL64/Multiphysics/java/win64/jre"
 ./gradlew assembleDebug testDebugUnitTest lintDebug --no-daemon
 ```
 
-APK: `app/build/outputs/apk/debug/app-debug.apk`.
+Отладочный APK: `app/build/outputs/apk/debug/app-debug.apk`.
+
+### Релизная сборка (GitHub Releases, F-Droid Reproducible Builds, Google Play)
+
+1. Скопируйте [`keystore.properties.example`](keystore.properties.example) в `keystore.properties`
+   (добавлен в `.gitignore`), сгенерируйте ключ `keytool` по инструкции внутри файла и укажите пароли.
+2. Соберите нужный артефакт:
+   - `./gradlew assembleRelease --no-daemon` → подписанный `app/build/outputs/apk/release/app-release.apk`
+     (для GitHub Releases, F-Droid Reproducible Builds и RuStore; без `keystore.properties` собирается
+     детерминированный `app-release-unsigned.apk` для сверки на сервере F-Droid).
+   - `./gradlew bundleRelease --no-daemon` → `app/build/outputs/bundle/release/app-release.aab`
+     (для Google Play).
+3. Метаданные карточки магазина (описание, иконка `512×512`, список изменений) хранятся в
+   `fastlane/metadata/android/` (`ru-RU` и `en-US`).
 
 `kotlin.incremental=false` сохранён намеренно для предотвращения `java.rmi.UnmarshalException`
 в Kotlin-демоне на Windows при наличии пробелов в путях.
 
-### Тесты (23 unit-теста)
+### Тесты (31 unit-тест)
 
-- **`KeyboardLayoutsTest`** (12 тестов): сохранность всех клавиш в Hex для каждого языка и пресета,
+- **`KeyboardLayoutsTest`** (20 тестов): сохранность всех клавиш в Hex для каждого языка и пресета,
   выбор вариантов Long-Press на всей правой половине справа налево с сохранением частотности и
-  контракта микро-метки, удаление суррогатных пар и ZWJ-эмодзи, извлечение слова перед курсором,
-  безопасная замена двойного пробела, пустая строка и правила автозаглавной Gboard (`resolveEditorCapFlags`,
-  `shouldAutoCapitalize` для URL/email/команд/конца предложения), форма слоёв символов, телефонная
-  сетка Numpad и эталонные значения `KeyboardPreferences`.
+  контракта микро-метки, свайп вверх `swipeUpFirstVariant`, конечный автомат `nextShiftStateOnTap`,
+  сохранение основы для сингармонизма после пробела без затрагивания `\n` и пробелов после пунктуации,
+  безопасное удаление слова по свайпу `⌫` с защитой от разрезания суррогатной пары на границе окна,
+  6 категорий смайликов (кратных 8 колонкам) и MRU-очередь `recentEmojis`, точное совпадение высоты
+  `computeKeyboardBodyHeightDp` для прямоугольной и сотовой раскладок, контекстный `Enter` и
+  авто-Numpad, компактная альбомная геометрия `resolveEffectiveGeometry`, удаление суррогатных пар и
+  ZWJ-эмодзи, безопасная замена двойного пробела, пустая строка и правила автозаглавной Gboard
+  (`resolveEditorCapFlags`, `shouldAutoCapitalize`), форма слоёв символов, телефонная сетка Numpad и
+  эталонные значения `KeyboardPreferences`.
 - **`MorphemeEngineTest`** (6 тестов): определение ряда сингармонизма, чередование падежных форм
   после гласных и согласных (`-ра/-та`, `-ран/-тан`, `-на/-а`), сохранение заглавной буквы при
   склейке, отображение дефиса у частиц и скрытие экспериментальных морфем по умолчанию.
@@ -168,8 +198,8 @@ APK: `app/build/outputs/apk/debug/app-debug.apk`.
 
 План работ и статусы ведутся в каталоге [`tasks/README.md`](tasks/README.md). Ключевые открытые темы:
 
-- **Финальное название приложения** ([`004`](tasks/004-app-name.md)): в `strings.xml` сейчас стоит
-  `Кӗске`, в заголовках настроек и документации — `Кеске (Kĕske)`; обсуждается чувашский неологизм.
+- **Финальное название приложения** ([`004`](tasks/004-app-name.md)): утверждено название
+  **Кӗсье Тӳме / Kĕsje Tüme** (кратко **кТӳме / kTüme**) и идентификатор пакета `org.chuvash.ktume` (на приёмке).
 - **Лингвистическая вычитка** ([`002`](tasks/002-chuvash-morphemes.md), [`005`](tasks/005-longpress-glyphs.md)):
   проверка носителем спорных стыков морфем (после сонорных `л, н, р, й, м` и форм принадлежности),
   а также очистка дублей и выверка частотности в таблицах Long-Press.
@@ -179,3 +209,14 @@ APK: `app/build/outputs/apk/debug/app-debug.apk`.
 - **Полировка сот и техдолг** ([`001`](tasks/001-hex-polish.md), [`007`](tasks/007-code-cleanup.md),
   [`009`](tasks/009-tech-debt-review.md)): проверка `HoneycombHexGrid` на разных экранах, удаление
   остатков мёртвого кода и мелкие UX-исправления по итогам код-ревью.
+
+---
+
+## 5. Лицензия и приватность
+
+- **Код проекта:** распространяется под лицензией [Apache License 2.0](LICENSE).
+- **Шрифт и сторонние библиотеки:** шрифт `Comfortaa` (`app/src/main/res/font/comfortaa.ttf`)
+  распространяется под свободной лицензией **SIL Open Font License 1.1** (`OFL-1.1`); подробности —
+  в [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
+- **Политика конфиденциальности:** [PRIVACY_POLICY.md](PRIVACY_POLICY.md) (приложение работает на 100 %
+  офлайн и не запрашивает разрешение `INTERNET`).
