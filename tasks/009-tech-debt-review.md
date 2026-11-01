@@ -66,4 +66,24 @@ created: 2026-10-22
 
 ## Отчёты
 
-_Пока нет._
+### 2026-11-01 · Готовность: 95 %
+
+- **Что сделано:**
+  - **Значимое (все 5 пунктов закрыты):**
+    1. Сброс состояния при переходе в новое поле (`KeyboardScreen.kt` + учёт смены сигнатуры `EditorInfo` при `restartInput` в Jetpack Compose в `KeskeImeService.kt`): сбрасываются `keyboardMode` (с авто-включением `NUMPAD` на `TYPE_CLASS_NUMBER` / `TYPE_CLASS_PHONE`), `toolbarOverlay`, `ShiftState.CAPS_LOCK` и открытые попапы.
+    2. `onDeleteWord` и `onReplaceCurrentWord` переведены на чистые функции `computeDeleteWordLength`, `computeTrailingHorizontalSpacesAfterWord` и `extractMorphemeWordBeforeCursor`: учитывается выделенный текст, сингармонизм сохраняется после пробела на той же строке, переводы строк `\n` никогда не пробиваются и не стираются.
+    3. В `BackspaceKey` убрана блокировка `repeatCount == 0` — свайп влево удаляет слово даже после старта автоповтора (`> 380 мс`).
+    4. В `PreferencesRepository.update(..., debounceDisk = true)` добавлен коалесцирующий debounce записи на диск (`220 мс`) для всех ползунков при мгновенном обновлении `StateFlow` в памяти.
+    5. В `SettingsActivity.kt` тестовое поле обёрнуто в `InterceptPlatformTextInput`, полностью блокирующий всплытие системной клавиатуры поверх превью.
+  - **Мелкое (закрыто):**
+    - `Paint` / `CornerPathEffect` в Hex-клавишах кэшируются через `rememberHexPaints`;
+    - `rememberSaveable` сохраняет вкладку, язык конструктора и текст тестового поля при повороте;
+    - fallback `KeskePalettes.byId` переведён на `ObsidianForest`;
+    - шаг свайпа курсора по пробелу переведён в `10.dp` + добавлен микро-тик виброотклика;
+    - шаг выбора ячейки в Long-Press выровнен до `40.dp` (под фактическую ширину `36 + 4 dp`);
+    - `Vibrator` и `AudioManager` кэшируются в `KeskeImeService`;
+    - первый рендер `KeskeImeService` ждёт `PreferencesRepository.loaded` без скачка палитры;
+    - git-репозиторий инициализирован и ведётся.
+- **Чем проверено:**
+  - `./gradlew assembleDebug testDebugUnitTest lintDebug --no-daemon` (BUILD SUCCESSFUL, 28 unit-тестов, 0 ошибок lint) + живой прогон на эмуляторе `Medium_Phone_API_37.0` (Contacts, Settings Search, студия настроек).
+- **Что осталось:** приёмка владельцем.

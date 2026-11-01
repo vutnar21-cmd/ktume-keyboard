@@ -1,18 +1,18 @@
-# AGENT.md — инструкция для ИИ-агентов (Кеске / Kĕske Android Keyboard)
+# AGENT.md — инструкция для ИИ-агентов (Кӗске Тӳме / кТӳме — Kĕske Tüme / kTüme)
 
 Этот документ содержит обязательные правила, архитектурные инварианты, команды сборки и контекст
-проекта **«Кеске (Kĕske)»** (`org.chuvash.keske`). Любой ИИ-агент (Hermes, Claude Code, Codex,
+проекта **«Кӗске Тӳме / кТӳме (Kĕske Tüme / kTüme)»** (`org.chuvash.ktume`). Любой ИИ-агент (Hermes, Claude Code, Codex,
 Cursor, Gemini и др.) перед изменением кода обязан изучить этот файл.
 
 ---
 
 ## 1. О проекте
 
-- **Название:** Кеске / Кӗске (Kĕske) — кастомизируемая чувашская многоязычная клавиатура для Android.
-- **Пакет и версия:** `org.chuvash.keske`, `versionName = "1.3.0"` (`versionCode = 4`).
-- **Стек:** Kotlin `2.0.21` (`org.jetbrains.kotlin.plugin.compose`), Jetpack Compose (Material 3,
-  BOM `2024.09.00`), DataStore Preferences `1.1.1`, Android Gradle Plugin `8.7.3`, JUnit `4.13.2`.
-- **SDK:** `minSdk = 26` (Android 8.0), `targetSdk = 35`, `compileSdk = 35`.
+- **Название:** Кӗске Тӳме (`app_name`) / кТӳме (`ime_name`), латиницей — Kĕske Tüme / kTüme — кастомизируемая чувашская многоязычная клавиатура для Android.
+- **Пакет и версия:** `org.chuvash.ktume`, `versionName = "1.3.0"` (`versionCode = 4`).
+- **Стек:** Kotlin `2.4.21` (`org.jetbrains.kotlin.plugin.compose`, built-in Kotlin AGP 9), Jetpack Compose (Material 3,
+  BOM `2024.09.00`), DataStore Preferences `1.1.1`, Android Gradle Plugin `9.5.0`, JUnit `4.13.2`.
+- **SDK:** `minSdk = 26` (Android 8.0), `targetSdk = 37` (Android 17), `compileSdk = 37`.
 - **Приватность:** полностью локальное приложение без доступа в сеть (в `AndroidManifest.xml`
   только разрешение `VIBRATE`), без аналитики и сторонних облачных SDK.
 - **Языки:** Чувашский (`cv` — Чӑвашла), Русский (`ru` — Русская), Латиница (`lat` — Latina),
@@ -22,9 +22,9 @@ Cursor, Gemini и др.) перед изменением кода обязан �
 
 ## 2. Сборка и проверка (Windows / Git-Bash / PowerShell)
 
-В `gradle.properties` прописан `org.gradle.java.home` на локальный Temurin JDK `21.0.7`
-(`C:/Program Files/COMSOL/COMSOL64/Multiphysics/java/win64/jre`). JDK 25 в `JAVA_HOME` ломает
-`lintAnalyzeDebug` (`JavaVersion.parse`), поэтому для запуска wrapper экспортируй тот же JDK 21:
+В пользовательском `~/.gradle/gradle.properties` прописан `org.gradle.java.home` на локальный Temurin JDK `21.0.7`
+(`C\:/Program Files/COMSOL/COMSOL64/Multiphysics/java/win64/jre` — вынесен из репозиторного `gradle.properties`,
+чтобы не ломать кроссплатформенную сборку на Linux / F-Droid). Для запуска wrapper экспортируй тот же JDK 21:
 
 ```bash
 export JAVA_HOME="C:/Program Files/COMSOL/COMSOL64/Multiphysics/java/win64/jre"
@@ -49,10 +49,11 @@ $env:JAVA_HOME = "C:/Program Files/COMSOL/COMSOL64/Multiphysics/java/win64/jre"
 - **Правило проверки:** любое изменение в `.kt` или `.xml` считается завершённым **только после
   успешного прохождения `./gradlew assembleDebug testDebugUnitTest lintDebug --no-daemon`
   без ошибок и предупреждений компилятора**.
-- **Тесты (`app/src/test/java/org/chuvash/keske/`):**
+- **Тесты (`app/src/test/java/org/chuvash/ktume/`):**
   - `ime/KeyboardLayoutsTest.kt` — раскладки, сохранность клавиш в Hex, выбор вариантов Long-Press,
-    удаление Unicode/ZWJ-графем, слово перед курсором, двойной пробел, пустая строка, слои символов,
-    Numpad и эталонные дефолты;
+    свайп вверх, конечный автомат `nextShiftStateOnTap`, удаление Unicode/ZWJ-графем и слов без
+    разрыва суррогатных пар, слово и пробелы перед курсором, двойной пробел, пустая строка и правила
+    автозаглавной Gboard, контекстный `Enter`, авто-Numpad, альбомная геометрия, слои символов и дефолты;
   - `data/MorphemeEngineTest.kt` — сингармонизм, выбор формы морфем по окончанию основы, склейка
     с сохранением заглавной буквы, фильтрация экспериментальных морфем;
   - `data/ChuvashNamesTest.kt` — экспериментальная капитализация имён собственных.
@@ -63,9 +64,9 @@ $env:JAVA_HOME = "C:/Program Files/COMSOL/COMSOL64/Multiphysics/java/win64/jre"
 
 ## 3. Карта исходного кода
 
-Исходники в `app/src/main/java/org/chuvash/keske/` разделены на три пакета без циклических
+Исходники в `app/src/main/java/org/chuvash/ktume/` разделены на три пакета без циклических
 зависимостей (`ui.theme` → только ресурсы `R`; `data` → чистые модели, данные и DataStore без
-зависимости от IME; `ime` → использует `data` и `ui.theme`):
+зависимости от IME; `ime` → использует `data` и `ui.theme`). Ни один исходный файл не превышает ~480 строк:
 
 ### 3.1. Пакет `ui.theme`
 
@@ -80,28 +81,38 @@ $env:JAVA_HOME = "C:/Program Files/COMSOL/COMSOL64/Multiphysics/java/win64/jre"
     пользовательских рядов `customRowsByLang`.
 - **`data/PreferencesRepository.kt`**
   - `PreferencesState` — общие `MutableStateFlow` (`preferences`, `shouldAutoCapitalize`,
-    `inputSessionId`, `currentWord`), которые читают сервис и экран настроек без связи через
-    `companion object` сервиса.
-  - `PreferencesRepository` — чтение и запись в Jetpack DataStore (`keske_keyboard_prefs_v3`).
+    `inputSessionId`, `currentWord`, `enterKeyAction`, `preferNumericMode`), которые читают сервис и
+    экран настроек без связи через `companion object` сервиса.
+  - `PreferencesRepository` — чтение и запись в Jetpack DataStore (`keske_keyboard_prefs_v3`),
+    поддерживает коалесцирующий `debounceDisk = true` (`220 мс`) для ползунков.
   - **Важно:** меняя дефолт настройки, которая уже могла сохраниться на устройстве, подними
     суффикс версии ключа `preferencesKey` (например, `_v5` → `_v6`, при необходимости с чтением
     старого ключа как fallback), иначе новое значение по умолчанию не применится.
-  - Асинхронная загрузка защищена флагами `loaded: StateFlow<Boolean>` и `hasPendingUserUpdate`:
-    правка настроек до завершения чтения не должна затираться фоновой загрузкой.
+  - Асинхронная загрузка защищена флагами `loaded: StateFlow<Boolean>` (выставляется в `finally`)
+    и `hasPendingUserUpdate`: правка настроек до завершения чтения не затирается фоновой загрузкой
+    и не блокирует стартовый гейт.
 - **`data/KeyboardLayouts.kt`**
   - `KeyboardLang` (`CHUVASH`, `RUSSIAN`, `LATINA`, `GREEK`) и `ChuvashLayoutPreset`
     (`BALANCED_26`, `HEX_4ROW`, `FULL_28`).
   - Таблицы Long-Press: `chuvashLongPress`, `russianLongPress`, `latinaLongPress`,
     `greekLongPress`, `digitAndSymbolLongPress` (включая символы слоёв `?123` / `=\<`).
   - Слои: `numberRow` (`1–0`), `symbolsLayer1` (`10 + 10 + 7`), `symbolsLayer2` (`10 + 10 + 7`),
-    `numpadRows` (3 колонки × 4 ряда), `emojiCategories`.
+    `numpadRows` (3 колонки × 4 ряда).
   - `getHex4RowLayout` — 4-рядная упаковка сот без потери символов;
-    `getDisplayedLongPressVariants` / `computeLongPressSelectedIndex` / `initialLongPressVariantIndex` —
-    единый видимый список вариантов и выбор индекса (включая обратный порядок у правого края).
-  - Работа с текстом и Unicode: `normalizeChuvashUnicode`, `computeLastGraphemeLength`,
-    `dropLastGrapheme`, `extractCurrentWordBeforeCursor`, `canReplaceSpaceWithCommaBeforeCursor`,
-    `isCursorOnEmptyLine`.
-  - `getSynharmonicParticlesAndAffixes` — фасад к `MorphemeEngine.suggestions`.
+    `getDisplayedLongPressVariants` / `computeLongPressSelectedIndex` / `initialLongPressVariantIndex` /
+    `primaryLongPressVariant` / `isSwipeUpGesture` — выбор вариантов Long-Press и конус свайпа вверх.
+  - Делегирует категории эмодзи, текстовую логику редактора и морфемные подсказки модулям
+    `EmojiCatalog`, `EditorTextLogic` и `MorphemeEngine`.
+- **`data/EditorTextLogic.kt`**
+  - `EnterKeyAction`, `EffectiveKeyboardGeometry` и чистые функции работы с текстом и контекстом поля:
+    `normalizeChuvashUnicode`, `computeLastGraphemeLength`, `dropLastGrapheme`,
+    `extractCurrentWordBeforeCursor`, `extractMorphemeWordBeforeCursor`,
+    `computeTrailingHorizontalSpacesAfterWord` (только после букв, не съедает пробел после пунктуации),
+    `computeDeleteWordLength` (без пробития `\n` и без разрезания суррогатной пары на границе окна),
+    `canReplaceSpaceWithCommaBeforeCursor`, `isCursorOnEmptyLine`, `resolveEditorCapFlags`,
+    `shouldAutoCapitalize`, `resolveEnterKeyAction`, `prefersNumericPad`, `resolveEffectiveGeometry`.
+- **`data/EmojiCatalog.kt`**
+  - `EmojiCategory` и локальный каталог смайликов `EmojiCatalog.categories` по 6 категориям.
 - **`data/ChuvashMorphemes.kt` и `data/MorphemeEngine.kt`**
   - Файл-словарь чувашских частиц, числа, 8 падежей, форм принадлежности и словообразовательных
     аффиксов (мягкий/твёрдый ряд, правила `AttachRule`, флаг `experimental`).
@@ -113,41 +124,50 @@ $env:JAVA_HOME = "C:/Program Files/COMSOL/COMSOL64/Multiphysics/java/win64/jre"
 ### 3.3. Пакет `ime`
 
 - **`ime/KeskeImeService.kt`**
-  - `InputMethodService` с `LifecycleOwner`, `ViewModelStoreOwner`, `SavedStateRegistryOwner`.
+  - `InputMethodService` с `LifecycleOwner`, `ViewModelStoreOwner`, `SavedStateRegistryOwner`
+    (деревья `ViewTree*Owner` привязаны и к `decorView`, и к самому `ComposeView`).
   - Отслеживает контекст автозаглавной по образцу Gboard (`PreferencesState.shouldAutoCapitalize`
-    через `resolveEditorCapFlags` + `shouldAutoCapitalize`, не включая заглавную в полях без `CAP_*`,
-    URL, email, паролях, командах и сразу после точки без пробела), смену поля ввода (`inputSessionId`)
+    через `resolveEditorCapFlags` + `shouldAutoCapitalize`), смену поля ввода (`inputSessionId`)
     и слово перед курсором (`PreferencesState.currentWord`) в `onStartInputView` / `onUpdateSelection`.
-  - Удаление через `computeLastGraphemeLength` (целые кластеры Unicode), звук
-    `AudioManager.FX_KEYPRESS_STANDARD` с учётом `STREAM_MUSIC` и `soundVolumePercent`, вибро,
-    экспериментальная капитализация имён перед пробелом.
-- **`ime/KeyboardScreen.kt`**
-  - Корневой UI-компонент клавиатуры, общий для сервиса и превью настроек.
-  - Режимы `KeyboardMode`: `LETTERS`, `SYMBOLS_1`, `SYMBOLS_2`, `NUMPAD`, `EMOJI_PAGE`;
-    регистр `ShiftState` с флагом `autoShiftArmed`.
-- **`ime/Keys.kt`**
-  - `KeyButton` (Long-Press с ведением пальца, быстрый свайп вверх с мини-превью для 1-го символа
-    `variants[0]`, микро-метки, свайп влево на точке, hex-отрисовка),
-    `BackspaceKey` (автоповтор + свайп удаления слова), `SpecialKey`, `SpacebarKey` (двойной пробел
-    и горизонтальный свайп перемещения курсора).
+  - Удаление через `computeLastGraphemeLength` (целые кластеры Unicode), единый хелпер звука
+    `playKeypressSound` (`AudioManager.FX_KEYPRESS_STANDARD` с учётом `STREAM_MUSIC` и
+    `soundVolumePercent`), кэшируемый `Vibrator`, экспериментальная капитализация имён перед пробелом.
+- **`ime/KeyboardScreen.kt` и `ime/KeyboardRows.kt`**
+  - `KeyboardScreen` — корневой UI-компонент клавиатуры (строго read-only по отношению к
+    `KeyboardPreferences`), общий для сервиса и превью настроек; режимы `KeyboardMode`
+    (`LETTERS`, `SYMBOLS_1`, `SYMBOLS_2`, `NUMPAD`, `EMOJI_PAGE`), регистр `ShiftState` с единым
+    хелпером `nextShiftStateOnTap` (`DOUBLE_TAP_WINDOW_MS = 420L`) и `autoShiftArmed`.
+  - `KeyboardRows` — `NumberRowStrip`, `AlphaSymbolRows`, `KeyboardBottomBar` и попап `GlobeLanguageMenuPopup`.
+- **`ime/Keys.kt` и `ime/FunctionalKeys.kt`**
+  - `Keys.kt` — общий модификатор поверхности прямоугольных и сотовых клавиш `rememberKeySurfaceModifier`,
+    `KeyButton` (бесшовные хитбоксы, Long-Press с ведением пальца, быстрый свайп вверх с мини-превью
+    `KeyPressPreviewPopup` для `variants[0]`, микро-метки, свайп влево на точке, попап `LongPressVariantsPopup`).
+  - `FunctionalKeys.kt` — `BackspaceKey` (автоповтор + свайп удаления слова), `SpecialKey`,
+    `SpacebarKey` (двойной пробел и горизонтальный свайп перемещения курсора).
   - Клавиши имеют семантику (`Role.Button`, `contentDescription`, `onClick`) и игнорируют
     отменённый жест (`ACTION_CANCEL`).
 - **`ime/Toolbar.kt`**
   - `TopToolbarStrip` — строго однорядная верхняя полоса (`36 dp`, без второго ряда и скачка высоты):
-    справа три кнопки (`📋`, `😊`, `⚙️`), а слева контекстно либо встроенная капсула буфера обмена
-    (по нажатию `📋`, вставка тапом с неявной нормализацией `ăĕçÿ → ӑӗҫӳ`), либо лента сингармонических
-    частиц/аффиксов в `Чӑвашла`, либо стрелки курсора `←` / `→` (с автоповтором) и кнопка `Вставить`.
-- **`ime/HoneycombHexGrid.kt`** — 4-рядная паркетная сотовая сетка с `clipToBounds` на каждом ряду.
+    справа три кнопки (`📋`, `😊`, `⚙️`), а слева контекстно один из 4 режимов:
+    1) встроенная капсула буфера обмена (по нажатию `📋`, вставка тапом с неявной нормализацией `ăĕçÿ → ӑӗҫӳ`);
+    2) на странице смайликов (`isEmojiPage`) — 6 компактных вкладок категорий смайликов (`🕒 😊 👍 ❤️ 🌿 ☕`);
+    3) в `Чӑвашла` (при включённых частицах) — лента сингармонических частиц и аффиксов;
+    4) в остальных случаях — стрелки курсора `←` / `→` (с автоповтором) и кнопка `Вставить`.
+    Все коллбэки внутри `pointerInput` обёрнуты в `rememberUpdatedState`.
+- **`ime/HoneycombHexGrid.kt`** — 4-рядная паркетная сотовая сетка с `clipToBounds` на каждом ряду и `onGestureTick`.
 - **`ime/NumpadGridView.kt`** — телефонная сетка 3 × 4 с колонкой действий `⌫ / − / + / ↵`.
-- **`ime/EmojiPickerPage.kt`** — полноразмерная страница смайликов по категориям.
+- **`ime/EmojiPickerPage.kt`** — страница смайликов с нулевым скачком высоты (`computeKeyboardBodyHeightDp`),
+  горизонтальным пейджером `HorizontalPager` по 6 категориям (`EmojiCatalog`, включая `🕒 Недавние` из
+  `recentEmojis` в DataStore), чистой 8-колоночной сеткой без рамок с «каплей» превью и нижним рядом
+  `АБВ · Пробел · ⌫ · ↵` (контекстный `Enter`).
 - **`ime/KeskeIcons.kt`**
   - Векторные иконки на `Canvas` вместо текстовых символов.
   - **Важно:** в Compose `Path` используй `quadraticTo(...)`, а не устаревший `quadraticBezierTo(...)`.
-- **`ime/SettingsActivity.kt`, `ime/SettingsComponents.kt`, `ime/SettingsRowEditor.kt`**
-  - 5 вкладок `SettingsTab`: «Раскладка», «Оформление», «Ввод», «Эксперименты», «Система».
-  - Шапка с переключателем светлой/тёмной темы, переиспользуемые карточки/тумблеры/ползунки,
-    конструктор рядов, тестовое поле `TextFieldValue` и **единственный** экземпляр `KeyboardScreen`,
-    закреплённый снизу.
+- **`ime/SettingsActivity.kt`, `ime/SettingsSections.kt`, `ime/SettingsPreviewBench.kt`, `ime/SettingsComponents.kt`, `ime/SettingsRowEditor.kt`**
+  - `SettingsActivity` — каркас студии настроек (шапка с переключателем темы, вкладки, прокрутка, диалог сброса).
+  - `SettingsSections` — `SettingsTab` и 5 секций («Раскладка», «Оформление», «Ввод», «Эксперименты», «Система»).
+  - `SettingsPreviewBench` — живое тестовое поле `SettingsTestFieldCard` и закреплённый снизу стенд `SettingsKeyboardPreview`.
+  - `SettingsComponents` и `SettingsRowEditor` — переиспользуемые карточки/тумблеры/ползунки и интерактивный конструктор рядов.
 
 ---
 
@@ -164,6 +184,7 @@ $env:JAVA_HOME = "C:/Program Files/COMSOL/COMSOL64/Multiphysics/java/win64/jre"
    - Задержка Long-Press (`longPressDelayMs`): **`210`**
    - Нижний отступ (`bottomInsetDp`): **`20f`**
    - `showNumberRow` — **`true`**, `showParticlesStrip` — **`true`**, `swipeUpFirstVariant` — **`true`**,
+     `showKeyPressPopup` — **`true`**, `compactLandscape` — **`true`**,
      `showSubLabels` — **`false`**, `experimentalCapitalizeNames` — **`false`**.
 2. **Чувашская раскладка по умолчанию (`BALANCED_26`):** строго `10 + 9 + 7 = 26` букв.
    - Ряд 1 (10): `й, ӑ, у, к, е, н, ӗ, ш, х, ӳ`
@@ -220,6 +241,13 @@ $env:JAVA_HOME = "C:/Program Files/COMSOL/COMSOL64/Multiphysics/java/win64/jre"
     (отдельной кнопки «Вставить» внутри капсулы нет). Когда лента чувашских частиц не показывается,
     левую часть занимают стрелки курсора `←` / `→` и быстрая кнопка `Вставить`. Нормализация
     «ложной латиницы» (`ăĕçÿ → ӑӗҫӳ`) выполняется неявно при вставке; системный буфер не перезаписывается.
+13. **Бесшовные хитбоксы (`gap / 2`) и контекстное поведение поля.** В прямоугольной раскладке
+    каждая клавиша владеет `hGap / 2` и `vGap / 2` вокруг видимого прямоугольника — мёртвых щелей нет
+    (в режиме сот `HoneycombHexGrid` отступы `0 dp`). При переходе в новое поле (включая `restartInput`
+    со сменой сигнатуры `EditorInfo` в Jetpack Compose) клавиатура сбрасывает застрявшие режимы,
+    автоматически открывает `NUMPAD` на `TYPE_CLASS_NUMBER` / `TYPE_CLASS_PHONE` и рисует контекстную
+    иконку `Enter` (`SEARCH`, `SEND`, `GO`, `NEXT`, `DONE`, `NEWLINE`). Удержание `🌐` открывает меню
+    раскладок и выбора системного метода ввода (`showInputMethodPicker`).
 
 ---
 

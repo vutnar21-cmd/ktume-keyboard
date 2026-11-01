@@ -41,4 +41,13 @@ created: 2026-10-23
 
 ## Отчёты
 
-_Пока нет._
+### 2026-11-01 · Готовность: 95 %
+
+- **Что сделано:**
+  - В `Keys.kt` (`KeyButton`, `BackspaceKey`, `SpecialKey`, `SpacebarKey`), `KeyboardScreen.kt` (цифровой ряд, 3 основных ряда букв/символов, нижний ряд), `NumpadGridView.kt` и `EmojiPickerPage.kt` введены параметры `gapPadH = hGap / 2` и `gapPadV = vGap / 2`.
+  - Внешний `Box` каждой клавиши владеет полным хитбоксом (по весу `Modifier.weight(...)` и с высотой `keyHeight + vGap`, при стандартных `48 + 7 = 55 dp >= 48 dp`), а видимая клавиша рисуется во внутреннем `Box` с отступом `gap / 2`. Внешние `Arrangement.spacedBy(hGap)` и `Spacer(height(vGap))` убраны — хитбоксы стыкуются ровно посередине визуальной щели без единого мёртвого пикселя.
+  - В режиме сот (`useHexShape = true`, `HoneycombHexGrid.kt`) отступы принудительно равны `0 dp` — геометрия сот и `clipToBounds` не затронуты.
+- **Чем проверено:**
+  - `./gradlew assembleDebug testDebugUnitTest lintDebug --no-daemon` (BUILD SUCCESSFUL, 28 unit-тестов, 0 ошибок lint).
+  - На виртуальном устройстве `Medium_Phone_API_37.0`: дамп `uiautomator` подтвердил бесшовную стыковку хитбоксов (`Row1.bottom == 1863 == Row2.top`, `Row2.bottom == 2007 == Row3.top`, `Row3.bottom == 2151 == Row4.top`, `А.right == 488 == П.left`); серия тапов прямо в визуальные зазоры между рядами безошибочно ввела `"Хула "`.
+- **Что осталось:** живая приёмка владельцем на физическом телефоне.

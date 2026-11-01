@@ -17,7 +17,7 @@
         android:supportsRtl="true"
         android:theme="@android:style/Theme.Material.NoActionBar">
 
-        <!-- 1. Экран настроек, который открывается по нажатию на значок "Кеске" в меню телефона -->
+        <!-- 1. Экран настроек, который открывается по нажатию на значок "Кӗске Тӳме" в меню телефона -->
         <activity
             android:name=".ime.SettingsActivity"
             android:exported="true"

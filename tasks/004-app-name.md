@@ -39,4 +39,11 @@ created: 2026-10-22
 
 ## Отчёты
 
-_Пока нет._
+### 2026-11-01 · Готовность: 100 %
+
+- **Что сделано:**
+  - По решению владельца утверждено название **Кӗске Тӳме / Kĕske Tüme** (с чистой чувашской кириллической `ӗ`, `U+04D7`), краткая форма — **кТӳме / kTüme**, а также пакет **`org.chuvash.ktume`** до первого публичного релиза.
+  - В `app/src/main/res/values/strings.xml` обновлены `app_name = "Кӗске Тӳме"`, `ime_name = "кТӳме"` и подтипы `кТӳме\nЧӑвашла`, `кТӳме\nРусская`, `кТӳме\nLatina`, `кТӳме\nΕλληνικά`.
+  - Пакеты исходников и тестов перенесены в `org.chuvash.ktume`, обновлены `namespace`/`applicationId` в `app/build.gradle.kts`, `settingsActivity` в `app/src/main/res/xml/method.xml`, заголовок `SettingsActivity` (`Кӗске Тӳме (Kĕske Tüme)`), кнопка включения в `SettingsSections` (`1. Включить кТӳме`), метаданные `fastlane/`, `PRIVACY_POLICY.md`, `THIRD_PARTY_NOTICES.md`, `AGENT.md` и `README.md`.
+- **Что осталось:** визуальная приёмка владельцем на устройстве.
+- **Чем проверено:** `./gradlew assembleDebug assembleRelease bundleRelease testDebugUnitTest lintDebug --no-daemon`.

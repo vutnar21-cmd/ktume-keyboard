@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">Кӗске</string>
-    <string name="ime_name">Кӗске</string>
-    <!-- Подтипы: «имя приложения» + перевод строки + название раскладки,
-         чтобы в системном меню выбора клавиатуры было видно и то, и другое. -->
-    <string name="subtype_chuvash">Кӗске\nЧӑвашла</string>
-    <string name="subtype_russian">Кӗске\nРусская</string>
-    <string name="subtype_latin">Кӗске\nLatina</string>
-    <string name="subtype_greek">Кӗске\nΕλληνικά</string>
+    <string name="app_name">Кӗске Тӳме</string>
+    <string name="ime_name">кТӳме</string>
+    <!-- Подтипы: краткое имя «кТӳме» + перевод строки + название раскладки,
+         чтобы в системном меню выбора клавиатуры не обрезался заголовок. -->
+    <string name="subtype_chuvash">кТӳме\nЧӑвашла</string>
+    <string name="subtype_russian">кТӳме\nРусская</string>
+    <string name="subtype_latin">кТӳме\nLatina</string>
+    <string name="subtype_greek">кТӳме\nΕλληνικά</string>
 </resources>

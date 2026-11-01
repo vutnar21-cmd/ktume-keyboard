@@ -1,0 +1,9 @@
+Kĕske Tüme / kTüme (Кӗске Тӳме / кТӳме) is a privacy-first, fully offline customizable Android keyboard designed for the Chuvash language alongside Russian, Latin (Latina), and Greek layouts. It requests no internet permission and contains zero analytics, ads, or cloud dependencies.
+
+Key features:
+- Balanced 26-key Chuvash layout (10 + 9 + 7): native Chuvash letters (ӑ, ӗ, ҫ, ӳ) sit directly on the primary layer without cramping key widths.
+- Quick swipe-up gesture and slide-to-select long-press popups for secondary characters and symbols.
+- Optional 4-row honeycomb hexagonal grid (Hex) and an interactive row editor in settings.
+- Chuvash vowel-harmony strip: suggests front/back-vowel particles (-и?, -ши?, -ха/-хе) and case/plural suffixes (+сем, +ра/+ре/+та/+те, +па/+пе) matching the current word stem.
+- Single-row top toolbar with cursor arrows, emoji picker, and one-tap clipboard paste (automatically normalizing Latin lookalikes ăĕçÿ to Chuvash ӑӗҫӳ).
+- Context-aware Enter action, automatic 3x4 Numpad for numeric/phone fields, full Unicode grapheme backspace, and 7 color palettes (including OLED dark).
