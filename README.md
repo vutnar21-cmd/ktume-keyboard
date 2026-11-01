@@ -9,6 +9,15 @@
 - `minSdk = 26` (Android 8.0), `targetSdk = 37` (Android 17), `compileSdk = 37`
 - Kotlin `2.4.21`, AGP `9.5.0`, Jetpack Compose (Material 3, BOM `2024.09.00`), DataStore `1.1.1`
 
+### Скачать для Android (8.0+)
+
+[![Скачать APK с GitHub Releases](docs/badge-github-apk.svg)](https://github.com/vutnar21-cmd/ktume-keyboard/releases/latest)
+[![Добавить в Obtainium для автообновлений](docs/badge-obtainium.svg)](https://apps.obtainium.imranr.dev/redirect?r=obtainium://app/%7B%22id%22%3A%22org.chuvash.ktume%22%2C%22url%22%3A%22https%3A%2F%2Fgithub.com%2Fvutnar21-cmd%2Fktume-keyboard%22%2C%22author%22%3A%22vutnar21-cmd%22%2C%22name%22%3A%22%D0%9A%D3%97%D1%81%D1%8C%D0%B5%20%D0%A2%D3%B3%D0%BC%D0%B5%20%28kT%C3%BCme%29%22%7D)
+
+| QR-код (`releases/latest`) | Установка и обновления |
+| :---: | :--- |
+| [![QR-код скачивания APK](docs/qr-download.svg)](https://github.com/vutnar21-cmd/ktume-keyboard/releases/latest) | **Вручную:** наведите камеру телефона на QR-код (или откройте [`releases/latest`](https://github.com/vutnar21-cmd/ktume-keyboard/releases/latest)) и установите `ktume-<версия>.apk`.<br>**С автообновлением:** нажмите **«Добавить в Obtainium»** (или вставьте URL репозитория в [Obtainium](https://github.com/ImranR98/Obtainium)) — обновления с GitHub будут приходить автоматически с проверкой подписи.<br>**Отпечаток сертификата подписи (`SHA-256`):** `3fd72afafa41e973b820e0c9ee1cd9e818f95a3431fbf4f9722ed9fc4b301312` |
+
 ---
 
 ## 1. Возможности
@@ -85,7 +94,11 @@ ktume-keyboard/
 ├── README.md
 ├── build.gradle.kts                  # AGP 9.5.0, Kotlin 2.4.21 (built-in + compose-плагин)
 ├── settings.gradle.kts
-├── gradle.properties                 # JVM-параметры, путь к JDK 21, kotlin.incremental=false
+├── gradle.properties                 # JVM-параметры, kotlin.incremental=false
+├── release.bat                       # Запуск локальной автоматизации релиза (обёртка над scripts/release.ps1)
+├── scripts/release.ps1               # Автосборка, сверка подписи F-Droid, тег и публикация в GitHub Releases
+├── docs/                             # Локальные SVG-кнопки скачивания и QR-код для витрины README
+├── fastlane/metadata/android/        # Описания, иконка 512×512 и changelogs/<versionCode>.txt для F-Droid
 ├── tasks/                            # Каталог задач на развитие и индекс статусов (tasks/README.md)
 └── app/
     ├── build.gradle.kts              # SDK 26..37, Compose BOM, DataStore
@@ -169,6 +182,18 @@ export JAVA_HOME="C:/Program Files/COMSOL/COMSOL64/Multiphysics/java/win64/jre"
      (для Google Play).
 3. Метаданные карточки магазина (описание, иконка `512×512`, список изменений) хранятся в
    `fastlane/metadata/android/` (`ru-RU` и `en-US`).
+4. **Автоматический выпуск новых версий одной командой (`release.bat`):**
+   - Приватный ключ `.jks` никуда в облако не загружается — сборка, проверка воспроизводимости F-Droid
+     и публикация выполняются локально через официальный `gh` CLI (`winget install --id GitHub.cli -e`,
+     затем один раз `gh auth login`).
+   - Для выпуска новой версии поднимите `versionCode` и `versionName` в `app/build.gradle.kts`, добавьте
+     `fastlane/metadata/android/{ru-RU,en-US}/changelogs/<versionCode>.txt` (до 500 байт), закоммитьте изменения и запустите:
+     ```powershell
+     .\release.bat -DryRun   # предварительная проверка сборки, подписи и текста релиза без пуша
+     .\release.bat           # пуш main, тег v<versionName> и публикация ktume-<versionName>.apk на GitHub
+     ```
+   - После появления нового тега и файла `ktume-<versionName>.apk` на GitHub сервер F-Droid автоматически
+     обнаружит обновление (`UpdateCheckMode: Tags`), пересоберёт APK из исходников и сверит вашу подпись.
 
 `kotlin.incremental=false` сохранён намеренно для предотвращения `java.rmi.UnmarshalException`
 в Kotlin-демоне на Windows при наличии пробелов в путях.
