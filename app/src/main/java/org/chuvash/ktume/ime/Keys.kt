@@ -158,9 +158,10 @@ internal fun KeyButton(
     }
     var showLongPressPopup by remember { mutableStateOf(false) }
     var showSwipeUpPreview by remember { mutableStateOf(false) }
-    var selectedVariantIndex by remember(variants, colFraction) {
-        mutableIntStateOf(KeyboardLayouts.initialLongPressVariantIndex(variants, colFraction))
-    }
+    // Без ключей `remember`: жест в `pointerInput(colFraction)` не перезапускается при смене `variants`
+    // (Shift, автозаглавная) и держит State из первой композиции. С ключами попап читал бы новый State,
+    // а палец двигал бы старый — подсветка залипала на основном варианте. Индекс задаётся при срабатывании Long-Press.
+    var selectedVariantIndex by remember { mutableIntStateOf(0) }
     var isPressed by remember { mutableStateOf(false) }
 
     val currentLabel by rememberUpdatedState(label)
@@ -285,15 +286,17 @@ internal fun KeyButton(
                             longPressJob.cancel()
                             isPressed = false
                             showSwipeUpPreview = false
+                            // И при отмене корутины (перезапуск `pointerInput`): иначе окно попапа остаётся
+                            // висеть над соседними клавишами и перехватывает их нажатия.
+                            showLongPressPopup = false
                         }
 
                         if (cancelled) {
-                            showLongPressPopup = false
+                            // Отменённый жест ничего не вводит.
                         } else if (longPressTriggered && currentDisplayedVariants.isNotEmpty()) {
                             val chosen = currentDisplayedVariants.getOrElse(selectedVariantIndex) {
                                 currentDisplayedVariants.first()
                             }
-                            showLongPressPopup = false
                             currentOnCommit(chosen)
                         } else if (swipeUpActive && currentPrimaryVariant != null) {
                             currentOnCommit(currentPrimaryVariant!!)
