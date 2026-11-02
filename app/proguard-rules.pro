@@ -1,7 +1,7 @@
 # Правила R8 / ProGuard для релизной сборки клавиатуры «Кӗсье Тӳме» (org.chuvash.ktume)
 # Jetpack Compose, Material 3 и DataStore поставляют собственные consumer-правила внутри AAR.
 
-# Детерминированное переименование пакетов для воспроизводимых сборок (F-Droid Reproducible Builds)
+# Детерминированное переименование пакетов: одинаковый код даёт одинаковый APK
 -dontusemixedcaseclassnames
 -repackageclasses ''
 

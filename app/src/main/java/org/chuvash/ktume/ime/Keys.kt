@@ -96,7 +96,9 @@ private fun buildHexPath(w: Float, h: Float): Path {
 /**
  * Общий модификатор видимой поверхности клавиши: скруглённый шестиугольник с кэшированным `Paint`
  * в режиме сот либо прямоугольник со скруглением `cornerRadiusDp` в классическом режиме.
+ * Это remember-хелпер (кэширует `Paint` сот), а не фабрика цепочки `Modifier`, поэтому не расширение.
  */
+@Suppress("ModifierFactoryExtensionFunction")
 @Composable
 internal fun rememberKeySurfaceModifier(
     useHexShape: Boolean,
@@ -137,6 +139,7 @@ internal fun KeyButton(
     variants: List<String>,
     prefs: KeyboardPreferences,
     palette: KeyboardPalette,
+    modifier: Modifier = Modifier,
     colFraction: Float = 0.5f,
     useHexShape: Boolean = prefs.hexagonalGrid,
     customHeight: Dp? = null,
@@ -144,7 +147,6 @@ internal fun KeyButton(
     gapPadH: Dp = 0.dp,
     gapPadV: Dp = 0.dp,
     swipeLeftCommit: String? = null,
-    modifier: Modifier = Modifier,
     onGestureTick: () -> Unit = {},
     onCommit: (String) -> Unit
 ) {

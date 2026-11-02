@@ -6,14 +6,29 @@ import kotlin.math.abs
  * МОДУЛЬ: KeyboardLayouts.kt — языковые раскладки, пресеты сетки, слои символов,
  * таблицы долгого нажатия (Long-Press) и математика выбора вариантов / свайпа вверх.
  *
- * Каталог эмодзи выделен в [EmojiCatalog], словарь и движок морфем — в [ChuvashMorphemes] и [MorphemeEngine],
- * а чистая логика контекста редактора, Unicode и геометрии — в [EditorTextLogic].
+ * Каталог эмодзи выделен в [EmojiCatalog], а чистая логика контекста редактора, Unicode и геометрии —
+ * в [EditorTextLogic].
  */
-enum class KeyboardLang(val code: String, val spaceLabel: String, val shortBadge: String) {
-    CHUVASH("cv", "Чӑвашла", "ЧВ"),
-    RUSSIAN("ru", "Русская", "РУ"),
-    LATINA("lat", "Latina", "LAT"),
-    GREEK("el", "Ελληνικά", "ΕΛ")
+enum class KeyboardLang(
+    val code: String,
+    val spaceLabel: String,
+    val shortBadge: String,
+    /** Язык подтипа IME в `res/xml/method.xml` (`android:languageTag`). */
+    val subtypeLanguage: String
+) {
+    CHUVASH("cv", "Чӑвашла", "ЧВ", "cv"),
+    RUSSIAN("ru", "Русская", "РУ", "ru"),
+    LATINA("lat", "Latina", "LAT", "en"),
+    GREEK("el", "Ελληνικά", "ΕΛ", "el");
+
+    companion object {
+        /** Раскладка по тегу системного подтипа IME (`cv-RU`, `ru_RU`, `en-US`); `null`, если язык не наш. */
+        fun fromSubtypeTag(tag: String?): KeyboardLang? {
+            val language = tag?.substringBefore('-')?.substringBefore('_')?.lowercase()
+            if (language.isNullOrEmpty()) return null
+            return entries.firstOrNull { it.subtypeLanguage == language }
+        }
+    }
 }
 
 enum class ChuvashLayoutPreset(val id: String, val title: String, val subtitle: String) {
@@ -284,10 +299,6 @@ object KeyboardLayouts {
         }
     }
 
-    /** Лента частиц и аффиксов для текущего слова (фасад к [MorphemeEngine.suggestions]). */
-    fun getSynharmonicParticlesAndAffixes(currentWord: String): List<String> =
-        MorphemeEngine.suggestions(currentWord)
-
     /** Полный пул букв для добавления клавиши в ряд при кастомизации. */
     fun getCandidatePool(lang: KeyboardLang): List<String> {
         return when (lang) {
@@ -389,11 +400,8 @@ object KeyboardLayouts {
     fun extractCurrentWordBeforeCursor(beforeCursor: String): String =
         EditorTextLogic.extractCurrentWordBeforeCursor(beforeCursor)
 
-    fun extractMorphemeWordBeforeCursor(beforeCursor: String): String =
-        EditorTextLogic.extractMorphemeWordBeforeCursor(beforeCursor)
-
-    fun computeTrailingHorizontalSpacesAfterWord(beforeCursor: String): Int =
-        EditorTextLogic.computeTrailingHorizontalSpacesAfterWord(beforeCursor)
+    fun isPasswordInputType(inputType: Int): Boolean =
+        EditorTextLogic.isPasswordInputType(inputType)
 
     fun computeDeleteWordLength(beforeCursor: String): Int =
         EditorTextLogic.computeDeleteWordLength(beforeCursor)

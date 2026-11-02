@@ -34,14 +34,38 @@ internal object EditorTextLogic {
 
     private val CLOSING_SENTENCE_CHARS = setOf('»', '"', '”', '\'', '’', ')', ']')
 
-    /** Конвертер «ложной латиницы» (`ă, ĕ, ç, ÿ, ŭ → ӑ, ӗ, ҫ, ӳ`). */
+    private val FALSE_LATIN_TO_CYRILLIC = mapOf(
+        'ă' to 'ӑ', 'Ă' to 'Ӑ',
+        'ĕ' to 'ӗ', 'Ĕ' to 'Ӗ',
+        'ç' to 'ҫ', 'Ç' to 'Ҫ',
+        'ÿ' to 'ӳ', 'Ÿ' to 'Ӳ',
+        'ŭ' to 'ӳ', 'Ŭ' to 'Ӳ'
+    )
+    private val LETTER_RUN = Regex("\\p{L}+")
+
+    /**
+     * Конвертер «ложной латиницы» (`ă, ĕ, ç, ÿ, ŭ → ӑ, ӗ, ҫ, ӳ`) только внутри слов, где уже есть кириллица
+     * («Чăваш» → «Чӑваш»). Латинские слова («garçon», «Çăvaş») остаются без изменений.
+     */
     fun normalizeChuvashUnicode(input: String): String {
-        return input
-            .replace('ă', 'ӑ').replace('Ă', 'Ӑ')
-            .replace('ĕ', 'ӗ').replace('Ĕ', 'Ӗ')
-            .replace('ç', 'ҫ').replace('Ç', 'Ҫ')
-            .replace('ÿ', 'ӳ').replace('Ÿ', 'Ӳ')
-            .replace('ŭ', 'ӳ').replace('Ŭ', 'Ӳ')
+        if (input.none { it in FALSE_LATIN_TO_CYRILLIC }) return input
+        return LETTER_RUN.replace(input) { match ->
+            val word = match.value
+            val hasCyrillic = word.any { Character.UnicodeScript.of(it.code) == Character.UnicodeScript.CYRILLIC }
+            if (hasCyrillic) word.map { FALSE_LATIN_TO_CYRILLIC[it] ?: it }.joinToString("") else word
+        }
+    }
+
+    /** Поле пароля (текстовое или числовое PIN): вставляемый текст нельзя менять ни на символ. */
+    fun isPasswordInputType(inputType: Int): Boolean {
+        val variation = inputType and EditorInfo.TYPE_MASK_VARIATION
+        return when (inputType and EditorInfo.TYPE_MASK_CLASS) {
+            EditorInfo.TYPE_CLASS_TEXT -> variation == EditorInfo.TYPE_TEXT_VARIATION_PASSWORD ||
+                variation == EditorInfo.TYPE_TEXT_VARIATION_VISIBLE_PASSWORD ||
+                variation == EditorInfo.TYPE_TEXT_VARIATION_WEB_PASSWORD
+            EditorInfo.TYPE_CLASS_NUMBER -> variation == EditorInfo.TYPE_NUMBER_VARIATION_PASSWORD
+            else -> false
+        }
     }
 
     /**
@@ -83,33 +107,6 @@ internal object EditorTextLogic {
             }
         }
         return beforeCursor.substring(idx)
-    }
-
-    /**
-     * Извлекает слово-основу для сингармонизма ленты частиц и аффиксов на текущей строке.
-     * Работает как во время набора слова («хула»), так и сразу после пробела на той же строке («хула »),
-     * но не пересекает перевод строки `\n` и не берёт слово после знака препинания («хула. »).
-     */
-    fun extractMorphemeWordBeforeCursor(beforeCursor: String): String {
-        if (beforeCursor.isEmpty()) return ""
-        val lineBefore = beforeCursor.substringAfterLast('\n')
-        val trimmedLine = lineBefore.trimEnd { it == ' ' || it == '\t' }
-        return extractCurrentWordBeforeCursor(trimmedLine)
-    }
-
-    /**
-     * Количество хвостовых горизонтальных пробелов (`' '`, `'\t'`) после слова на текущей строке,
-     * которые нужно убрать перед приклеиванием частицы или аффикса.
-     * Не трогает переводы строк (`\n`, `\r`), отступы пустой строки и пробелы после знаков препинания.
-     */
-    fun computeTrailingHorizontalSpacesAfterWord(beforeCursor: String): Int {
-        if (beforeCursor.isEmpty()) return 0
-        val lineBefore = beforeCursor.substringAfterLast('\n')
-        val trimmedLine = lineBefore.trimEnd { it == ' ' || it == '\t' }
-        if (trimmedLine.isEmpty()) return 0
-        val lastCp = Character.codePointBefore(trimmedLine, trimmedLine.length)
-        if (!Character.isLetter(lastCp)) return 0
-        return lineBefore.length - trimmedLine.length
     }
 
     /**

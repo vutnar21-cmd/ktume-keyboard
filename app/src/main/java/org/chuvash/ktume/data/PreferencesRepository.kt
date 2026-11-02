@@ -34,8 +34,17 @@ object PreferencesState {
     /** Счётчик переключений в новое поле ввода (сбрасывает режимы и одноразовый Shift прошлого поля). */
     val inputSessionId = MutableStateFlow(0)
 
-    /** Текущее слово-основа перед курсором на активной строке (для ленты частиц и аффиксов). */
-    val currentWord = MutableStateFlow("")
+    /**
+     * Счётчик обновлений контекста редактора (ввод, удаление, перемещение курсора). Позволяет повторно
+     * взвести автозаглавную, когда [shouldAutoCapitalize] остаётся `true` (поля `CAP_CHARACTERS`).
+     */
+    val editorContextVersion = MutableStateFlow(0)
+
+    /** true, если текущее поле — пароль или PIN: вставка из буфера идёт без нормализации символов. */
+    val isPasswordField = MutableStateFlow(false)
+
+    /** Последняя выбранная раскладка (переживает пересоздание клавиатуры и перезапуск процесса). */
+    val activeLang = MutableStateFlow<KeyboardLang?>(null)
 
     /** Контекстное действие клавиши Enter текущего поля ввода (Поиск, Отправить, Готово, Далее, Перенос). */
     val enterKeyAction = MutableStateFlow(EnterKeyAction.NEWLINE)
@@ -89,9 +98,10 @@ object PreferencesRepository {
     private val KEY_SWIPE_UP_FIRST = booleanPreferencesKey("swipe_up_first_v1")
     private val KEY_DOUBLE_SPACE_COMMA = booleanPreferencesKey("double_space_comma")
     private val KEY_SHOW_HYPHEN = booleanPreferencesKey("show_hyphen_key")
-    private val KEY_PARTICLES = booleanPreferencesKey("show_particles_v5")
     private val KEY_EXP_CAP_NAMES = booleanPreferencesKey("exp_capitalize_names_v1")
     private val KEY_RECENT_EMOJIS = stringPreferencesKey("recent_emojis_v1")
+    /** Пишется отдельно от [update]: переключение языка не перезаписывает остальные настройки. */
+    private val KEY_ACTIVE_LANG = stringPreferencesKey("active_lang_v1")
 
     private var pendingSaveJob: Job? = null
     private val saveMutex = Any()
@@ -126,6 +136,10 @@ object PreferencesRepository {
         scope.launch {
             try {
                 val p = appCtx.kesjeDataStore.data.first()
+                val savedLang = KeyboardLang.entries.find { it.code == p[KEY_ACTIVE_LANG] }
+                if (savedLang != null && PreferencesState.activeLang.value == null) {
+                    PreferencesState.activeLang.value = savedLang
+                }
                 if (hasPendingUserUpdate) return@launch
                 val presetId = p[KEY_CV_PRESET] ?: ChuvashLayoutPreset.BALANCED_26.id
                 val preset = ChuvashLayoutPreset.entries.find { it.id == presetId } ?: ChuvashLayoutPreset.BALANCED_26
@@ -160,7 +174,6 @@ object PreferencesRepository {
                     swipeUpFirstVariant = p[KEY_SWIPE_UP_FIRST] ?: true,
                     doubleSpaceComma = p[KEY_DOUBLE_SPACE_COMMA] ?: true,
                     showHyphenKey = p[KEY_SHOW_HYPHEN] ?: true,
-                    showParticlesStrip = p[KEY_PARTICLES] ?: true,
                     experimentalCapitalizeNames = p[KEY_EXP_CAP_NAMES] ?: false,
                     recentEmojis = deserializeRecentEmojis(p[KEY_RECENT_EMOJIS]),
                     customRowsByLang = customMap
@@ -176,6 +189,20 @@ object PreferencesRepository {
             } finally {
                 // Разблокируем UI гарантированно при любом исходе (включая ранний выход hasPendingUserUpdate).
                 _loaded.value = true
+            }
+        }
+    }
+
+    /** Запоминает выбранную раскладку: сразу в [PreferencesState.activeLang], на диск — отдельным ключом. */
+    fun saveActiveLang(context: Context, lang: KeyboardLang) {
+        if (PreferencesState.activeLang.value == lang) return
+        PreferencesState.activeLang.value = lang
+        val appCtx = context.applicationContext
+        scope.launch {
+            try {
+                appCtx.kesjeDataStore.edit { p -> p[KEY_ACTIVE_LANG] = lang.code }
+            } catch (e: Exception) {
+                Log.w(TAG, "Не удалось сохранить выбранную раскладку", e)
             }
         }
     }
@@ -223,7 +250,6 @@ object PreferencesRepository {
                         p[KEY_SWIPE_UP_FIRST] = latest.swipeUpFirstVariant
                         p[KEY_DOUBLE_SPACE_COMMA] = latest.doubleSpaceComma
                         p[KEY_SHOW_HYPHEN] = latest.showHyphenKey
-                        p[KEY_PARTICLES] = latest.showParticlesStrip
                         p[KEY_EXP_CAP_NAMES] = latest.experimentalCapitalizeNames
                         p[KEY_RECENT_EMOJIS] = serializeRecentEmojis(latest.recentEmojis)
                         latest.customRowsByLang.forEach { (lang, rows) ->

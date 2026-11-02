@@ -3,13 +3,13 @@
     Local one-command release automation for Kesje Tume / kTume (org.chuvash.ktume).
 
 .DESCRIPTION
-    Builds, verifies, tags, and publishes a reproducible signed APK release to GitHub Releases
+    Builds, verifies, tags, and publishes a signed APK release to GitHub Releases
     without ever uploading the private signing keystore (.jks) to cloud CI servers.
-    Compatible with F-Droid Reproducible Builds (UpdateCheckMode: Tags, Binaries: ktume-%v.apk).
+    Obtainium users get the update from GitHub Releases and verify the signing certificate.
 
 .EXAMPLE
     .\scripts\release.ps1 -DryRun
-    Runs tests, lint, release build, APK signature/reproducibility checks, and previews release notes.
+    Runs tests, lint, release build, APK signature checks, and previews release notes.
 
 .EXAMPLE
     .\scripts\release.ps1
@@ -150,7 +150,7 @@ try {
 
     $keystorePropsPath = Join-Path $projectRoot "keystore.properties"
     if (-not (Test-Path $keystorePropsPath) -and -not $env:KESJE_KEYSTORE_PATH) {
-        Fail "Missing keystore.properties (and KESJE_KEYSTORE_PATH is not set). Copy keystore.properties.example to keystore.properties first."
+        Fail "Missing keystore.properties (and KESJE_KEYSTORE_PATH is not set). Copy keystore.properties.example to keystore.properties and fill it in first."
     }
 
     $ruChangelogPath = Join-Path $projectRoot "fastlane\metadata\android\ru-RU\changelogs\$versionCode.txt"
@@ -179,7 +179,7 @@ try {
     $gitStatus = (& git status --porcelain)
     if ($LASTEXITCODE -ne 0) { Fail "git status failed." }
     if ($gitStatus) {
-        $msg = "Git working tree has uncommitted changes. F-Droid Reproducible Builds require building from the exact committed tree."
+        $msg = "Git working tree has uncommitted changes. Releases must be built from the exact committed tree."
         if ($DryRun) { Write-Warn "$msg (allowed in -DryRun)" } else { Fail $msg }
     }
 
@@ -259,14 +259,14 @@ try {
     }
     Copy-Item -Path $builtApkPath -Destination $targetApkPath -Force
 
-    # 4. Verify F-Droid Reproducibility & APK Signature
-    Write-Step "Verifying APK reproducibility and cryptographic signature"
+    # 4. Verify deterministic APK contents & APK signature
+    Write-Step "Verifying APK contents and cryptographic signature"
     Add-Type -AssemblyName System.IO.Compression.FileSystem
     $zip = [System.IO.Compression.ZipFile]::OpenRead($targetApkPath)
     try {
         $vcsEntry = $zip.Entries | Where-Object { $_.FullName -eq "META-INF/version-control-info.textproto" }
         if ($vcsEntry) {
-            Fail "APK contains META-INF/version-control-info.textproto! This breaks F-Droid Reproducible Builds."
+            Fail "APK contains META-INF/version-control-info.textproto! The release APK must not embed VCS metadata (vcsInfo.include = false)."
         }
     } finally {
         $zip.Dispose()
@@ -283,7 +283,7 @@ try {
     $actualCertSha256 = $Matches[1].ToLowerInvariant()
 
     if ($ExpectedCertSha256 -and ($actualCertSha256 -ne $ExpectedCertSha256.ToLowerInvariant())) {
-        Fail "APK signing certificate mismatch!`n  Expected (F-Droid AllowedAPKSigningKeys): $ExpectedCertSha256`n  Actual APK signer                     : $actualCertSha256"
+        Fail "APK signing certificate mismatch!`n  Expected (README / Obtainium): $ExpectedCertSha256`n  Actual APK signer           : $actualCertSha256"
     }
 
     $apkSha256 = (Get-FileHash -Path $targetApkPath -Algorithm SHA256).Hash.ToLowerInvariant()
@@ -316,7 +316,7 @@ try {
     Write-Host "APK Path     : $targetApkPath" -ForegroundColor Green
     Write-Host "APK Size     : $apkSizeMb MB" -ForegroundColor Green
     Write-Host "APK SHA-256  : $apkSha256" -ForegroundColor Green
-    Write-Host "Cert SHA-256 : $actualCertSha256 (matches F-Droid AllowedAPKSigningKeys)" -ForegroundColor Green
+    Write-Host "Cert SHA-256 : $actualCertSha256 (matches the published certificate)" -ForegroundColor Green
     Write-Host "`n--- Release Notes ($notesPath) ---`n$releaseNotes-----------------------------------"
 
     if ($DryRun) {
@@ -348,7 +348,7 @@ try {
     if ($LASTEXITCODE -ne 0) { Fail "gh release create failed." }
 
     Write-Step "Release $tagName published successfully!"
-    Write-Host "F-Droid (UpdateCheckMode: Tags, AutoUpdateMode: Version) will automatically pick up $tagName and verify $apkFileName." -ForegroundColor Green
+    Write-Host "Obtainium users will receive $tagName from GitHub Releases." -ForegroundColor Green
 } finally {
     Pop-Location
 }

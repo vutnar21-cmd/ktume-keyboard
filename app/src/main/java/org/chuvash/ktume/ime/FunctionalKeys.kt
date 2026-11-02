@@ -40,11 +40,11 @@ import org.chuvash.ktume.ui.theme.KeyboardPalette
 internal fun BackspaceKey(
     prefs: KeyboardPreferences,
     palette: KeyboardPalette,
+    modifier: Modifier = Modifier,
     useHexShape: Boolean = false,
     customHeight: Dp? = null,
     gapPadH: Dp = 0.dp,
     gapPadV: Dp = 0.dp,
-    modifier: Modifier = Modifier,
     onTapBackspace: () -> Unit,
     onSwipeDeleteWord: () -> Unit
 ) {
@@ -148,16 +148,16 @@ internal fun BackspaceKey(
 @Composable
 internal fun SpecialKey(
     label: String,
-    iconType: KesjeIconType? = null,
     prefs: KeyboardPreferences,
     palette: KeyboardPalette,
+    modifier: Modifier = Modifier,
+    iconType: KesjeIconType? = null,
     isActive: Boolean = false,
     isAccent: Boolean = false,
     useHexShape: Boolean = false,
     customHeight: Dp? = null,
     gapPadH: Dp = 0.dp,
     gapPadV: Dp = 0.dp,
-    modifier: Modifier = Modifier,
     onLongClick: (() -> Unit)? = null,
     onClick: () -> Unit,
     overlayContent: @Composable BoxScope.() -> Unit = {}
@@ -303,9 +303,9 @@ internal fun SpacebarKey(
     lang: KeyboardLang,
     prefs: KeyboardPreferences,
     palette: KeyboardPalette,
+    modifier: Modifier = Modifier,
     gapPadH: Dp = 0.dp,
     gapPadV: Dp = 0.dp,
-    modifier: Modifier = Modifier,
     onGestureTick: () -> Unit = {},
     onCommitSpace: () -> Unit,
     onMoveCursor: (Int) -> Unit
