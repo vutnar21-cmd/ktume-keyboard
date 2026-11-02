@@ -272,8 +272,16 @@ try {
         $zip.Dispose()
     }
 
-    $certOutput = (& $apksignerExe verify --print-certs $targetApkPath 2>&1 | Out-String)
-    if ($LASTEXITCODE -ne 0) {
+    # Newer JDKs print warnings to stderr; Windows PowerShell 5.1 would turn them into terminating errors
+    $previousErrorAction = $ErrorActionPreference
+    $ErrorActionPreference = "Continue"
+    try {
+        $certOutput = (& $apksignerExe verify --print-certs $targetApkPath 2>&1 | Out-String)
+        $apksignerExitCode = $LASTEXITCODE
+    } finally {
+        $ErrorActionPreference = $previousErrorAction
+    }
+    if ($apksignerExitCode -ne 0) {
         Fail "apksigner verification failed:`n$certOutput"
     }
 
