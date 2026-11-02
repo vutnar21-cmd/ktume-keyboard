@@ -87,3 +87,31 @@ created: 2026-10-22
 - **Чем проверено:**
   - `./gradlew assembleDebug testDebugUnitTest lintDebug --no-daemon` (BUILD SUCCESSFUL, 28 unit-тестов, 0 ошибок lint) + живой прогон на эмуляторе `Medium_Phone_API_37.0` (Contacts, Settings Search, студия настроек).
 - **Что осталось:** приёмка владельцем.
+
+### 2026-11-02 · Готовность: 95 %
+
+- **Что сделано (по итогам нового ревью):**
+  1. Вставка из буфера: «ложная латиница» `ăĕçÿŭ → ӑӗҫӳ` исправляется только в словах с кириллицей
+     (`normalizeChuvashUnicode`), в полях паролей текст не меняется (`isPasswordInputType`). Раньше
+     портились французский, турецкий текст, чувашская латиница и пароли.
+  2. Поля `CAP_CHARACTERS`: автозаглавная взводится заново после каждой буквы (`resolveAutoShift` +
+     `PreferencesState.editorContextVersion`); раньше заглавной была только первая буква.
+  3. `⌫` в пустом поле и в `TYPE_NULL` отправляет `KEYCODE_DEL`, перевод строки в `TYPE_NULL` —
+     `KEYCODE_ENTER`; стрелки курсора — через `sendDownUpKeyEvents`.
+  4. Составные правки (`", "`, автозаглавные имена) — в `beginBatchEdit` / `endBatchEdit`.
+  5. Выбранная раскладка хранится (`activeLang`, ключ `active_lang_v1`) и синхронизируется с системным
+     подтипом IME (`languageTag` в `method.xml`, `switchInputMethod`, `onCurrentInputMethodSubtypeChanged`).
+  6. F-Droid снят с целевых площадок: убраны проверки и упоминания; скриншоты перенесены в
+     `fastlane/.../images/phoneScreenshots/`; добавлен `keystore.properties.example`.
+  7. Зависимости: Compose BOM `2026.09.00`, activity-compose `1.13.0`, Lifecycle `2.11.0`,
+     savedstate `1.5.0`, DataStore `1.3.0`, Gradle `9.8.2`. Новые проверки Compose-lint закрыты
+     (порядок параметра `modifier`).
+  8. `попытка в название.md` перенесён в `docs/app-name-research.md`.
+- **Чем проверено:**
+  - `./gradlew assembleDebug testDebugUnitTest lintDebug --no-daemon` — BUILD SUCCESSFUL, 28 unit-тестов
+    (+4 новых: нормализация вставки, поля паролей, подтипы IME, `resolveAutoShift`), lint: «No issues found».
+  - Эмулятор `Medium_Phone_API_37.0`, Google Contacts: клавиатура открывается, автозаглавная в поле
+    «Last name», переключение 🌐 на русскую сохраняется после поворота экрана и после перезапуска процесса.
+  - На устройстве не проверены: `KEYCODE_DEL` в ячейках SMS-кода, поля `CAP_CHARACTERS`, вставка
+    в поле пароля, выбор подтипа из системного меню.
+- **Что осталось:** проверка пунктов выше на телефоне, приёмка владельцем.

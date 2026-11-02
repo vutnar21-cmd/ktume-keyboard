@@ -7,9 +7,7 @@ import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.gestures.waitForUpOrCancellation
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -32,9 +30,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import org.chuvash.ktume.data.EmojiCategory
-import org.chuvash.ktume.data.KeyboardLang
 import org.chuvash.ktume.data.KeyboardLayouts
-import org.chuvash.ktume.data.KeyboardPreferences
 import org.chuvash.ktume.ui.theme.KeskeFontFamily
 import org.chuvash.ktume.ui.theme.KeyboardPalette
 
@@ -43,13 +39,15 @@ import org.chuvash.ktume.ui.theme.KeyboardPalette
  *
  * Всегда занимает ровно один ряд фиксированной высоты (клавиатура не прыгает при открытии буфера и смайликов):
  * - Справа постоянно закреплены 3 компактные иконки: Буфер обмена `[📋]`, Смайлики `[😊]`, Настройки `[⚙️]`.
- * - Слева (`weight 1f`) контекстно переключаются четыре режима:
+ * - Слева (`weight 1f`) контекстно переключаются три режима:
  *   1) При нажатии `[📋]` — встроенная капсула буфера обмена на всю левую часть строки (тап по тексту
- *      вставляет содержимое с неявной нормализацией `ăĕçÿ → ӑӗҫӳ`).
+ *      вставляет содержимое).
  *   2) На странице смайликов (`isEmojiPage`) — 6 компактных вкладок категорий (`🕒 😊 👍 ❤️ 🌿 ☕`).
- *   3) В раскладке «Чӑвашла» (когда включены частицы) — лента сингармонических частиц и аффиксов.
- *   4) В остальных раскладках (или когда частицы выключены) — кнопки курсора `[←]` `[→]` (с автоповтором
- *      при удержании) и быстрая кнопка «Вставить» в 1 касание.
+ *   3) В остальных случаях — кнопки курсора `[←]` `[→]` (с автоповтором при удержании) и быстрая
+ *      кнопка «Вставить» в 1 касание.
+ *
+ * При вставке «ложная латиница» (`ăĕçÿ → ӑӗҫӳ`) исправляется только в словах с кириллицей и никогда —
+ * в полях паролей.
  */
 
 private fun readCurrentClipboardText(clipboard: ClipboardManager?): String {
@@ -61,18 +59,15 @@ private fun readCurrentClipboardText(clipboard: ClipboardManager?): String {
 @Composable
 internal fun TopToolbarStrip(
     context: Context,
-    lang: KeyboardLang,
-    typedWord: String,
-    prefs: KeyboardPreferences,
     palette: KeyboardPalette,
     isEmojiPage: Boolean,
+    isPasswordField: Boolean,
     emojiCategories: List<EmojiCategory>,
     selectedEmojiCategoryIdx: Int,
     toolbarOverlay: ToolbarOverlay,
     onToggleClipboard: () -> Unit,
     onToggleEmojiPage: () -> Unit,
     onSelectEmojiCategory: (Int) -> Unit,
-    onSelectParticle: (String) -> Unit,
     onMoveCursor: (Int) -> Unit,
     onPasteText: (String) -> Unit,
     onOpenSettings: () -> Unit
@@ -80,7 +75,9 @@ internal fun TopToolbarStrip(
     val clipboard = remember(context) {
         context.getSystemService(Context.CLIPBOARD_SERVICE) as? ClipboardManager
     }
-    val currentOnSelectParticle by rememberUpdatedState(onSelectParticle)
+    val pasteFromClipboard: (String) -> Unit = { raw ->
+        onPasteText(if (isPasswordField) raw else KeyboardLayouts.normalizeChuvashUnicode(raw))
+    }
     val isClipboardOpen = toolbarOverlay == ToolbarOverlay.CLIPBOARD
     var clipText by remember { mutableStateOf("") }
 
@@ -97,10 +94,6 @@ internal fun TopToolbarStrip(
         } else {
             onDispose {}
         }
-    }
-
-    val particlesAndAffixes = remember(typedWord) {
-        KeyboardLayouts.getSynharmonicParticlesAndAffixes(typedWord)
     }
 
     Row(
@@ -122,7 +115,7 @@ internal fun TopToolbarStrip(
                     InlineClipboardCapsule(
                         clipText = clipText,
                         palette = palette,
-                        onPaste = onPasteText
+                        onPaste = pasteFromClipboard
                     )
                 }
 
@@ -135,57 +128,12 @@ internal fun TopToolbarStrip(
                     )
                 }
 
-                lang == KeyboardLang.CHUVASH && prefs.showParticlesStrip -> {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .horizontalScroll(rememberScrollState()),
-                        horizontalArrangement = Arrangement.spacedBy(6.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        particlesAndAffixes.forEach { item ->
-                            val displayLabel = if (item.startsWith("-")) item else "+$item"
-                            Surface(
-                                color = palette.specialKeyBg,
-                                shape = RoundedCornerShape(10.dp),
-                                modifier = Modifier
-                                    .height(32.dp)
-                                    .semantics(mergeDescendants = true) {
-                                        role = Role.Button
-                                        contentDescription = displayLabel
-                                        onClick(label = displayLabel) {
-                                            currentOnSelectParticle(item)
-                                            true
-                                        }
-                                    }
-                                    .pointerInput(item) {
-                                        detectTapGestures(onTap = { currentOnSelectParticle(item) })
-                                    }
-                            ) {
-                                Box(
-                                    contentAlignment = Alignment.Center,
-                                    modifier = Modifier.padding(horizontal = 9.dp)
-                                ) {
-                                    Text(
-                                        text = displayLabel,
-                                        color = palette.accentBg,
-                                        fontFamily = KeskeFontFamily,
-                                        fontSize = 12.sp,
-                                        fontWeight = FontWeight.Bold,
-                                        maxLines = 1
-                                    )
-                                }
-                            }
-                        }
-                    }
-                }
-
                 else -> {
                     CursorAndEditStrip(
                         clipboard = clipboard,
                         palette = palette,
                         onMoveCursor = onMoveCursor,
-                        onPasteText = onPasteText
+                        onPasteText = pasteFromClipboard
                     )
                 }
             }
@@ -291,13 +239,13 @@ private fun InlineClipboardCapsule(
                             role = Role.Button
                             contentDescription = "Вставить из буфера обмена"
                             onClick(label = "Вставить") {
-                                currentOnPaste(KeyboardLayouts.normalizeChuvashUnicode(currentClipText))
+                                currentOnPaste(currentClipText)
                                 true
                             }
                         }
                         .pointerInput(hasText) {
                             detectTapGestures(onTap = {
-                                currentOnPaste(KeyboardLayouts.normalizeChuvashUnicode(currentClipText))
+                                currentOnPaste(currentClipText)
                             })
                         }
                 } else {
@@ -360,7 +308,7 @@ private fun CursorAndEditStrip(
                     onClick(label = "Вставить") {
                         val raw = readCurrentClipboardText(clipboard)
                         if (raw.isNotEmpty()) {
-                            currentOnPasteText(KeyboardLayouts.normalizeChuvashUnicode(raw))
+                            currentOnPasteText(raw)
                         }
                         true
                     }
@@ -369,7 +317,7 @@ private fun CursorAndEditStrip(
                     detectTapGestures(onTap = {
                         val raw = readCurrentClipboardText(clipboard)
                         if (raw.isNotEmpty()) {
-                            currentOnPasteText(KeyboardLayouts.normalizeChuvashUnicode(raw))
+                            currentOnPasteText(raw)
                         }
                     })
                 }

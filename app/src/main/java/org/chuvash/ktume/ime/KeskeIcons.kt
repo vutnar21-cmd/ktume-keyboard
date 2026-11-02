@@ -51,8 +51,8 @@ internal fun EnterKeyAction.toIconType(): KeskeIconType = when (this) {
 fun KeskeVectorIcon(
     type: KeskeIconType,
     tint: Color,
-    size: Dp = 18.dp,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    size: Dp = 18.dp
 ) {
     Canvas(modifier = modifier.size(size)) {
         val w = this.size.width

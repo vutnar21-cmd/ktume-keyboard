@@ -107,7 +107,6 @@ internal fun SettingsKeyboardPreview(
                 afterCursor = afterCursor,
                 editorCapFlags = EditorInfo.TYPE_TEXT_FLAG_CAP_SENTENCES
             ),
-            editorCurrentWord = KeyboardLayouts.extractMorphemeWordBeforeCursor(beforeCursor),
             onCommitText = { committed ->
                 feedback()
                 val nextText = beforeCursor + committed + afterCursor
@@ -125,14 +124,6 @@ internal fun SettingsKeyboardPreview(
                 } else {
                     false
                 }
-            },
-            onReplaceCurrentWord = { replacement ->
-                feedback()
-                val spacesToTrim = KeyboardLayouts.computeTrailingHorizontalSpacesAfterWord(beforeCursor)
-                val trimmedBefore = beforeCursor.dropLast(spacesToTrim)
-                val nextText = "$trimmedBefore$replacement $afterCursor"
-                val nextCursor = (trimmedBefore.length + replacement.length + 1).coerceIn(0, nextText.length)
-                onTestFieldChange(TextFieldValue(nextText, TextRange(nextCursor)))
             },
             onBackspace = {
                 feedback()

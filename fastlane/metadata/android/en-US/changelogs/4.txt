@@ -1,4 +1,4 @@
 - Seamless key hitboxes, swipe-up secondary input, and compact landscape mode
 - Single-row toolbar with Chuvash vowel-harmony strip and inline clipboard paste
 - Updated targetSdk and compileSdk to Android 17 (API 37)
-- Reproducible release build configuration for F-Droid and GitHub Releases
+- Reproducible release builds for GitHub Releases

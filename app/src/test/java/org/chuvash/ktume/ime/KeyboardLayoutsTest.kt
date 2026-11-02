@@ -215,7 +215,6 @@ class KeyboardLayoutsTest {
         assertEquals(20f, prefs.bottomInsetDp, 0.001f)
         assertEquals(210, prefs.longPressDelayMs)
         assertTrue(prefs.showNumberRow)
-        assertTrue(prefs.showParticlesStrip)
         assertTrue(prefs.swipeUpFirstVariant)
         assertTrue(prefs.showKeyPressPopup)
         assertTrue(prefs.compactLandscape)
@@ -369,26 +368,44 @@ class KeyboardLayoutsTest {
     }
 
     @Test
-    fun morphemeContextAndSpaceTrimming_preserveNewlinesAndKeepHarmonyAfterSpace() {
-        // Во время набора слова и сразу после пробела на той же строке сингармонизм сохраняет основу «хула»
-        assertEquals("хула", KeyboardLayouts.extractMorphemeWordBeforeCursor("хула"))
-        assertEquals("хула", KeyboardLayouts.extractMorphemeWordBeforeCursor("хула "))
-        assertEquals("Шупашкар", KeyboardLayouts.extractMorphemeWordBeforeCursor("Салам, Шупашкар  "))
+    fun normalizeChuvashUnicode_fixesFalseLatinOnlyInsideCyrillicWords() {
+        // «Ложная латиница» внутри кириллического слова исправляется
+        assertEquals("Чӑваш ҫӗршывӗ", KeyboardLayouts.normalizeChuvashUnicode("Чăваш çĕршывĕ"))
+        assertEquals("ӲСЕР", KeyboardLayouts.normalizeChuvashUnicode("ŸСЕР"))
 
-        // После точки с пробелом или на новой строке основа сбрасывается
-        assertEquals("", KeyboardLayouts.extractMorphemeWordBeforeCursor("хула. "))
-        assertEquals("", KeyboardLayouts.extractMorphemeWordBeforeCursor("хула\n"))
-        assertEquals("", KeyboardLayouts.extractMorphemeWordBeforeCursor("хула\n  "))
+        // Латинские слова (французский, турецкий, чувашская латиница) остаются как есть
+        assertEquals("Ça va, garçon", KeyboardLayouts.normalizeChuvashUnicode("Ça va, garçon"))
+        assertEquals("Çăvaş", KeyboardLayouts.normalizeChuvashUnicode("Çăvaş"))
+        // В смешанной строке правится только кириллическое слово
+        assertEquals("garçon ҫӑка", KeyboardLayouts.normalizeChuvashUnicode("garçon çăка"))
+        assertEquals("", KeyboardLayouts.normalizeChuvashUnicode(""))
+    }
 
-        // Подрезка пробела перед приклеиванием аффикса не трогает \n, отступ пустой строки и пробел после пунктуации/цифр
-        assertEquals(0, KeyboardLayouts.computeTrailingHorizontalSpacesAfterWord("хула"))
-        assertEquals(1, KeyboardLayouts.computeTrailingHorizontalSpacesAfterWord("хула "))
-        assertEquals(2, KeyboardLayouts.computeTrailingHorizontalSpacesAfterWord("Строка 1\nхула  "))
-        assertEquals(0, KeyboardLayouts.computeTrailingHorizontalSpacesAfterWord("Строка 1\n"))
-        assertEquals(0, KeyboardLayouts.computeTrailingHorizontalSpacesAfterWord("Строка 1\n   "))
-        assertEquals(0, KeyboardLayouts.computeTrailingHorizontalSpacesAfterWord("Салам. "))
-        assertEquals(0, KeyboardLayouts.computeTrailingHorizontalSpacesAfterWord("Салам, "))
-        assertEquals(0, KeyboardLayouts.computeTrailingHorizontalSpacesAfterWord("123 "))
+    @Test
+    fun isPasswordInputType_detectsTextAndNumericPasswords() {
+        val text = EditorInfo.TYPE_CLASS_TEXT
+        assertTrue(KeyboardLayouts.isPasswordInputType(text or EditorInfo.TYPE_TEXT_VARIATION_PASSWORD))
+        assertTrue(KeyboardLayouts.isPasswordInputType(text or EditorInfo.TYPE_TEXT_VARIATION_VISIBLE_PASSWORD))
+        assertTrue(KeyboardLayouts.isPasswordInputType(text or EditorInfo.TYPE_TEXT_VARIATION_WEB_PASSWORD))
+        assertTrue(
+            KeyboardLayouts.isPasswordInputType(EditorInfo.TYPE_CLASS_NUMBER or EditorInfo.TYPE_NUMBER_VARIATION_PASSWORD)
+        )
+
+        assertFalse(KeyboardLayouts.isPasswordInputType(EditorInfo.TYPE_NULL))
+        assertFalse(KeyboardLayouts.isPasswordInputType(text or EditorInfo.TYPE_TEXT_FLAG_CAP_SENTENCES))
+        assertFalse(KeyboardLayouts.isPasswordInputType(text or EditorInfo.TYPE_TEXT_VARIATION_EMAIL_ADDRESS))
+        assertFalse(KeyboardLayouts.isPasswordInputType(EditorInfo.TYPE_CLASS_NUMBER))
+    }
+
+    @Test
+    fun keyboardLangFromSubtypeTag_mapsMethodXmlSubtypes() {
+        assertEquals(KeyboardLang.CHUVASH, KeyboardLang.fromSubtypeTag("cv-RU"))
+        assertEquals(KeyboardLang.RUSSIAN, KeyboardLang.fromSubtypeTag("ru_RU"))
+        assertEquals(KeyboardLang.LATINA, KeyboardLang.fromSubtypeTag("en-US"))
+        assertEquals(KeyboardLang.GREEK, KeyboardLang.fromSubtypeTag("EL"))
+        assertEquals(null, KeyboardLang.fromSubtypeTag("de-DE"))
+        assertEquals(null, KeyboardLang.fromSubtypeTag(""))
+        assertEquals(null, KeyboardLang.fromSubtypeTag(null))
     }
 
     @Test
@@ -438,6 +455,35 @@ class KeyboardLayoutsTest {
             ShiftState.OFF,
             nextShiftStateOnTap(current = ShiftState.CAPS_LOCK, nowMs = 1_200L, lastTapMs = 1_100L)
         )
+    }
+
+    @Test
+    fun resolveAutoShift_rearmsInCapCharactersFieldsAndKeepsManualShift() {
+        val off = AutoShift(ShiftState.OFF, armed = false)
+        val autoOnce = AutoShift(ShiftState.ONCE, armed = true)
+
+        // Поле просит заглавную — Shift взводится автоматически
+        assertEquals(autoOnce, resolveAutoShift(off, autoCapitalizeEnabled = true, shouldAutoCapitalize = true))
+
+        // CAP_CHARACTERS: после ввода буквы ONCE погашен, а поле всё ещё просит заглавную — взводится снова
+        val afterFirstLetter = AutoShift(ShiftState.OFF, armed = false)
+        assertEquals(
+            autoOnce,
+            resolveAutoShift(afterFirstLetter, autoCapitalizeEnabled = true, shouldAutoCapitalize = true)
+        )
+
+        // Контекст больше не просит заглавную — снимается только ONCE, включённый автозаглавной
+        assertEquals(off, resolveAutoShift(autoOnce, autoCapitalizeEnabled = true, shouldAutoCapitalize = false))
+        val manualOnce = AutoShift(ShiftState.ONCE, armed = false)
+        assertEquals(manualOnce, resolveAutoShift(manualOnce, autoCapitalizeEnabled = true, shouldAutoCapitalize = false))
+
+        // CAPS_LOCK пользователя не трогается
+        val capsLock = AutoShift(ShiftState.CAPS_LOCK, armed = false)
+        assertEquals(capsLock, resolveAutoShift(capsLock, autoCapitalizeEnabled = true, shouldAutoCapitalize = true))
+
+        // Автозаглавная выключена в настройках — ничего не взводится, авто-ONCE снимается
+        assertEquals(off, resolveAutoShift(off, autoCapitalizeEnabled = false, shouldAutoCapitalize = true))
+        assertEquals(off, resolveAutoShift(autoOnce, autoCapitalizeEnabled = false, shouldAutoCapitalize = true))
     }
 
     @Test

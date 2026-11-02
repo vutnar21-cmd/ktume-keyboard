@@ -1,25 +1,34 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Описание языковых подтипов клавиатуры для системных настроек Android -->
+<!--
+  Описание языковых подтипов клавиатуры для системных настроек Android.
+  languageTag связывает подтип с раскладкой (KeyboardLang.fromSubtypeTag): выбор подтипа в системном
+  меню переключает раскладку, а переключение 🌐 выставляет системный подтип (язык проверки орфографии).
+-->
 <input-method xmlns:android="http://schemas.android.com/apk/res/android"
     android:settingsActivity="org.chuvash.ktume.ime.SettingsActivity">
 
     <subtype
         android:label="@string/subtype_chuvash"
         android:imeSubtypeLocale="cv_RU"
+        android:languageTag="cv-RU"
         android:imeSubtypeMode="keyboard" />
 
     <subtype
         android:label="@string/subtype_russian"
         android:imeSubtypeLocale="ru_RU"
+        android:languageTag="ru-RU"
         android:imeSubtypeMode="keyboard" />
 
     <subtype
         android:label="@string/subtype_latin"
         android:imeSubtypeLocale="en_US"
-        android:imeSubtypeMode="keyboard" />
+        android:languageTag="en-US"
+        android:imeSubtypeMode="keyboard"
+        android:isAsciiCapable="true" />
 
     <subtype
         android:label="@string/subtype_greek"
         android:imeSubtypeLocale="el_GR"
+        android:languageTag="el-GR"
         android:imeSubtypeMode="keyboard" />
 </input-method>

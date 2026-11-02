@@ -64,17 +64,38 @@ internal fun nextShiftStateOnTap(
     else -> ShiftState.OFF
 }
 
+/** Состояние `Shift` вместе с флагом «включён автозаглавной, а не пользователем». */
+internal data class AutoShift(val shiftState: ShiftState, val armed: Boolean)
+
+/**
+ * Синхронизирует `Shift` с автозаглавной редактора при каждом обновлении его контекста:
+ * взводит `ONCE`, если поле просит заглавную, а `Shift` выключен (в том числе повторно в полях
+ * `CAP_CHARACTERS`), и снимает только тот `ONCE`, который включила сама автозаглавная.
+ */
+internal fun resolveAutoShift(
+    current: AutoShift,
+    autoCapitalizeEnabled: Boolean,
+    shouldAutoCapitalize: Boolean
+): AutoShift = when {
+    autoCapitalizeEnabled && shouldAutoCapitalize ->
+        if (current.shiftState == ShiftState.OFF) AutoShift(ShiftState.ONCE, armed = true) else current
+    current.armed && current.shiftState == ShiftState.ONCE -> AutoShift(ShiftState.OFF, armed = false)
+    else -> current
+}
+
 @Composable
 fun KeyboardScreen(
     prefs: KeyboardPreferences,
     shouldAutoCapitalize: Boolean = false,
     inputSessionId: Int = 0,
-    editorCurrentWord: String? = null,
+    editorContextVersion: Int = 0,
     enterKeyAction: EnterKeyAction = EnterKeyAction.NEWLINE,
     preferNumericMode: Boolean = false,
+    isPasswordField: Boolean = false,
+    activeLang: KeyboardLang? = null,
     isPreview: Boolean = false,
+    onLangChange: (KeyboardLang) -> Unit = {},
     onCommitText: (String) -> Unit,
-    onReplaceCurrentWord: (String) -> Unit = { onCommitText("$it ") },
     onBackspace: () -> Unit,
     onDeleteWord: () -> Unit,
     onReplaceSpaceWithComma: () -> Boolean = {
@@ -111,9 +132,22 @@ fun KeyboardScreen(
         KeyboardLang.entries.filter { prefs.enabledLayouts.contains(it.code) }
             .ifEmpty { listOf(KeyboardLang.CHUVASH) }
     }
-    var currentLang by remember(enabledLangs) { mutableStateOf(enabledLangs.first()) }
+    var currentLang by remember(enabledLangs) {
+        mutableStateOf(activeLang?.takeIf { it in enabledLangs } ?: enabledLangs.first())
+    }
     if (currentLang !in enabledLangs) {
         currentLang = enabledLangs.first()
+    }
+    // Раскладка, выбранная извне: системный подтип IME или восстановление после пересоздания клавиатуры
+    LaunchedEffect(activeLang) {
+        if (activeLang != null && activeLang in enabledLangs) {
+            currentLang = activeLang
+        }
+    }
+
+    fun selectLang(lang: KeyboardLang) {
+        currentLang = lang
+        onLangChange(lang)
     }
 
     var shiftState by remember {
@@ -140,8 +174,8 @@ fun KeyboardScreen(
     }
 
     // При переключении в новое поле ввода сбрасываем залипшие режимы, включаем Numpad для чисел/телефонов
-    // и реактивно синхронизируем автозаглавную по контексту редактора.
-    LaunchedEffect(shouldAutoCapitalize, prefs.autoCapitalize, inputSessionId, preferNumericMode) {
+    // и на каждое обновление контекста редактора синхронизируем автозаглавную.
+    LaunchedEffect(shouldAutoCapitalize, prefs.autoCapitalize, inputSessionId, editorContextVersion, preferNumericMode) {
         val sessionChanged = inputSessionId != lastSeenSessionId
         lastSeenSessionId = inputSessionId
         if (sessionChanged) {
@@ -152,22 +186,13 @@ fun KeyboardScreen(
             shiftState = ShiftState.OFF
             autoShiftArmed = false
         }
-        if (!prefs.autoCapitalize) {
-            if (autoShiftArmed && shiftState == ShiftState.ONCE) {
-                shiftState = ShiftState.OFF
-                autoShiftArmed = false
-            }
-            return@LaunchedEffect
-        }
-        if (shouldAutoCapitalize) {
-            if (shiftState == ShiftState.OFF) {
-                shiftState = ShiftState.ONCE
-                autoShiftArmed = true
-            }
-        } else if (autoShiftArmed && shiftState == ShiftState.ONCE) {
-            shiftState = ShiftState.OFF
-            autoShiftArmed = false
-        }
+        val synced = resolveAutoShift(
+            current = AutoShift(shiftState, autoShiftArmed),
+            autoCapitalizeEnabled = prefs.autoCapitalize,
+            shouldAutoCapitalize = shouldAutoCapitalize
+        )
+        shiftState = synced.shiftState
+        autoShiftArmed = synced.armed
     }
 
     val isShifted = shiftState != ShiftState.OFF
@@ -289,11 +314,9 @@ fun KeyboardScreen(
         Column(modifier = Modifier.fillMaxWidth()) {
             TopToolbarStrip(
                 context = context,
-                lang = currentLang,
-                typedWord = editorCurrentWord.orEmpty(),
-                prefs = renderPrefs,
                 palette = palette,
                 isEmojiPage = keyboardMode == KeyboardMode.EMOJI_PAGE,
+                isPasswordField = isPasswordField,
                 emojiCategories = emojiCategories,
                 selectedEmojiCategoryIdx = emojiCategoryIdx,
                 toolbarOverlay = toolbarOverlay,
@@ -328,11 +351,6 @@ fun KeyboardScreen(
                         }
                         emojiCategoryIdx = idx
                     }
-                },
-                onSelectParticle = { particle ->
-                    showLangMenuPopup = false
-                    onReplaceCurrentWord(particle)
-                    lastCommittedWasSpace = true
                 },
                 onMoveCursor = { delta ->
                     showLangMenuPopup = false
@@ -486,7 +504,7 @@ fun KeyboardScreen(
                                 showLangMenuPopup = false
                             } else {
                                 val idx = enabledLangs.indexOf(currentLang)
-                                currentLang = enabledLangs[(idx + 1) % enabledLangs.size]
+                                selectLang(enabledLangs[(idx + 1) % enabledLangs.size])
                                 lastCommittedWasSpace = false
                                 showLangMenuPopup = false
                             }
@@ -496,7 +514,7 @@ fun KeyboardScreen(
                             showLangMenuPopup = !showLangMenuPopup
                         },
                         onSelectLang = { chosen ->
-                            currentLang = chosen
+                            selectLang(chosen)
                             lastCommittedWasSpace = false
                             showLangMenuPopup = false
                         },

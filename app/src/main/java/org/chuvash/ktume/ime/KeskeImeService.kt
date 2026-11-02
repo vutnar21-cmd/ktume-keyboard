@@ -12,6 +12,7 @@ import android.view.View
 import android.view.inputmethod.EditorInfo
 import android.view.inputmethod.InputConnection
 import android.view.inputmethod.InputMethodManager
+import android.view.inputmethod.InputMethodSubtype
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.platform.ComposeView
@@ -48,8 +49,10 @@ internal fun playKeypressSound(audioManager: AudioManager?, prefs: KeyboardPrefe
  *
  * Связывает Jetpack Compose интерфейс клавиатуры с системой Android:
  * - читает настройки из [PreferencesRepository] (DataStore) и ждёт `loaded` перед первым кадром;
- * - отслеживает контекст редактора (автозаглавная Gboard, слово-основа, контекстный `Enter`, авто-Numpad);
- * - удаляет целые графемные кластеры Unicode, выделенный текст и слова (не пробивая переводы строк `\n`);
+ * - отслеживает контекст редактора (автозаглавная Gboard, контекстный `Enter`, авто-Numpad, поле пароля);
+ * - удаляет целые графемные кластеры Unicode, выделенный текст и слова (не пробивая переводы строк `\n`),
+ *   а в пустых полях и полях `TYPE_NULL` отправляет `KEYCODE_DEL` / `KEYCODE_ENTER`;
+ * - запоминает выбранную раскладку и синхронизирует её с системным подтипом IME;
  * - обеспечивает тактильный виброотклик, микро-тик жестов, звук нажатия и выбор системного метода ввода.
  */
 class KeskeImeService : InputMethodService(), LifecycleOwner, ViewModelStoreOwner, SavedStateRegistryOwner {
@@ -135,6 +138,7 @@ class KeskeImeService : InputMethodService(), LifecycleOwner, ViewModelStoreOwne
 
         PreferencesState.preferNumericMode.value = KeyboardLayouts.prefersNumericPad(inputType)
         PreferencesState.enterKeyAction.value = KeyboardLayouts.resolveEnterKeyAction(imeOptions)
+        PreferencesState.isPasswordField.value = KeyboardLayouts.isPasswordInputType(inputType)
 
         val ic = currentInputConnection
         val capFlags = KeyboardLayouts.resolveEditorCapFlags(inputType)
@@ -149,7 +153,55 @@ class KeskeImeService : InputMethodService(), LifecycleOwner, ViewModelStoreOwne
             else -> runCatching { (ic?.getCursorCapsMode(capFlags) ?: 0) != 0 }.getOrDefault(false)
         }
         PreferencesState.shouldAutoCapitalize.value = autoCap
-        PreferencesState.currentWord.value = KeyboardLayouts.extractMorphemeWordBeforeCursor(before)
+        PreferencesState.editorContextVersion.value++
+    }
+
+    /**
+     * Поле без текстовой модели (`TYPE_NULL`: терминалы, эмуляторы консоли) понимает только нажатия клавиш,
+     * поэтому `⌫` и перевод строки отправляются туда как `KeyEvent`.
+     */
+    private fun isRawKeyEditor(): Boolean = currentInputEditorInfo?.inputType == EditorInfo.TYPE_NULL
+
+    /** Составная правка одним шагом: приложение не видит промежуточного текста, отмена откатывает её целиком. */
+    private inline fun InputConnection.batchEdit(block: InputConnection.() -> Unit) {
+        beginBatchEdit()
+        try {
+            block()
+        } finally {
+            endBatchEdit()
+        }
+    }
+
+    /** Подтип IME, о переключении на который мы сами попросили систему (ждём его подтверждения). */
+    private var pendingSubtypeLang: KeyboardLang? = null
+
+    /** Выставляет системный подтип IME под выбранную раскладку (язык проверки орфографии и подсказок приложений). */
+    private fun syncSystemSubtype(lang: KeyboardLang) {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.P) return
+        val imm = getSystemService(INPUT_METHOD_SERVICE) as? InputMethodManager ?: return
+        try {
+            val imi = imm.enabledInputMethodList.firstOrNull { it.packageName == packageName } ?: return
+            val target = imm.getEnabledInputMethodSubtypeList(imi, true)
+                .firstOrNull { KeyboardLang.fromSubtypeTag(it.languageTag) == lang } ?: return
+            if (imm.currentInputMethodSubtype == target) return
+            switchInputMethod(imi.id, target)
+            pendingSubtypeLang = lang
+        } catch (_: Exception) {
+        }
+    }
+
+    override fun onCurrentInputMethodSubtypeChanged(newSubtype: InputMethodSubtype?) {
+        super.onCurrentInputMethodSubtypeChanged(newSubtype)
+        val lang = KeyboardLang.fromSubtypeTag(newSubtype?.languageTag) ?: return
+        val pending = pendingSubtypeLang
+        if (pending != null) {
+            // Ответ на наш собственный запрос: промежуточные подтипы при быстром переключении 🌐 пропускаем
+            if (lang == pending) pendingSubtypeLang = null
+            return
+        }
+        if (lang.code in PreferencesState.preferences.value.enabledLayouts) {
+            PreferencesRepository.saveActiveLang(this, lang)
+        }
     }
 
     /** Эксперимент «автозаглавные имена собственные»: перед вставкой пробела поднимает регистр имени из списка. */
@@ -207,24 +259,36 @@ class KeskeImeService : InputMethodService(), LifecycleOwner, ViewModelStoreOwne
             val prefs by PreferencesState.preferences.collectAsState()
             val shouldAutoCapitalize by PreferencesState.shouldAutoCapitalize.collectAsState()
             val inputSessionId by PreferencesState.inputSessionId.collectAsState()
-            val editorCurrentWord by PreferencesState.currentWord.collectAsState()
+            val editorContextVersion by PreferencesState.editorContextVersion.collectAsState()
             val enterKeyAction by PreferencesState.enterKeyAction.collectAsState()
             val preferNumericMode by PreferencesState.preferNumericMode.collectAsState()
+            val isPasswordField by PreferencesState.isPasswordField.collectAsState()
+            val activeLang by PreferencesState.activeLang.collectAsState()
 
             KeyboardScreen(
                 prefs = prefs,
                 shouldAutoCapitalize = shouldAutoCapitalize,
                 inputSessionId = inputSessionId,
-                editorCurrentWord = editorCurrentWord,
+                editorContextVersion = editorContextVersion,
                 enterKeyAction = enterKeyAction,
                 preferNumericMode = preferNumericMode,
+                isPasswordField = isPasswordField,
+                activeLang = activeLang,
+                onLangChange = { lang ->
+                    PreferencesRepository.saveActiveLang(this, lang)
+                    syncSystemSubtype(lang)
+                },
                 onCommitText = { text ->
                     triggerFeedback(prefs)
                     val ic = currentInputConnection
                     if (ic != null && text == " " && prefs.experimentalCapitalizeNames) {
-                        capitalizeNameBeforeCursor(ic)
+                        ic.batchEdit {
+                            capitalizeNameBeforeCursor(this)
+                            commitText(text, 1)
+                        }
+                    } else {
+                        ic?.commitText(text, 1)
                     }
-                    ic?.commitText(text, 1)
                     updateEditorContextState()
                 },
                 onReplaceSpaceWithComma = {
@@ -233,35 +297,29 @@ class KeskeImeService : InputMethodService(), LifecycleOwner, ViewModelStoreOwne
                     val before = ic.getTextBeforeCursor(4, 0)?.toString().orEmpty()
                     if (KeyboardLayouts.canReplaceSpaceWithCommaBeforeCursor(before, !selected.isNullOrEmpty())) {
                         triggerFeedback(prefs)
-                        ic.deleteSurroundingText(1, 0)
-                        ic.commitText(", ", 1)
+                        ic.batchEdit {
+                            deleteSurroundingText(1, 0)
+                            commitText(", ", 1)
+                        }
                         updateEditorContextState()
                         true
                     } else {
                         false
                     }
                 },
-                onReplaceCurrentWord = { replacement ->
-                    triggerFeedback(prefs)
-                    val ic = currentInputConnection ?: return@KeyboardScreen
-                    val before = ic.getTextBeforeCursor(64, 0)?.toString().orEmpty()
-                    val trailingHorizontalSpaces = KeyboardLayouts.computeTrailingHorizontalSpacesAfterWord(before)
-                    if (trailingHorizontalSpaces > 0) {
-                        ic.deleteSurroundingText(trailingHorizontalSpaces, 0)
-                    }
-                    ic.commitText("$replacement ", 1)
-                    updateEditorContextState()
-                },
                 onBackspace = {
                     triggerFeedback(prefs)
                     val ic = currentInputConnection ?: return@KeyboardScreen
                     val selected = ic.getSelectedText(0)
-                    if (!selected.isNullOrEmpty()) {
-                        ic.commitText("", 1)
-                    } else {
-                        val before = ic.getTextBeforeCursor(16, 0)?.toString().orEmpty()
-                        val deleteLen = KeyboardLayouts.computeLastGraphemeLength(before).coerceAtLeast(1)
-                        ic.deleteSurroundingText(deleteLen, 0)
+                    val before = ic.getTextBeforeCursor(16, 0)?.toString()
+                    when {
+                        !selected.isNullOrEmpty() -> ic.commitText("", 1)
+                        // В пустом поле приложение ждёт KEYCODE_DEL: ячейки SMS-кода, «чипы» получателей
+                        isRawKeyEditor() || before.isNullOrEmpty() -> sendDownUpKeyEvents(KeyEvent.KEYCODE_DEL)
+                        else -> {
+                            val deleteLen = KeyboardLayouts.computeLastGraphemeLength(before).coerceAtLeast(1)
+                            ic.deleteSurroundingText(deleteLen, 0)
+                        }
                     }
                     updateEditorContextState()
                 },
@@ -269,13 +327,15 @@ class KeskeImeService : InputMethodService(), LifecycleOwner, ViewModelStoreOwne
                     triggerFeedback(prefs)
                     val ic = currentInputConnection ?: return@KeyboardScreen
                     val selected = ic.getSelectedText(0)
-                    if (!selected.isNullOrEmpty()) {
-                        ic.commitText("", 1)
-                    } else {
-                        val before = ic.getTextBeforeCursor(64, 0)?.toString().orEmpty()
-                        val charsToDelete = KeyboardLayouts.computeDeleteWordLength(before)
-                        if (charsToDelete > 0) {
-                            ic.deleteSurroundingText(charsToDelete, 0)
+                    val before = ic.getTextBeforeCursor(64, 0)?.toString()
+                    when {
+                        !selected.isNullOrEmpty() -> ic.commitText("", 1)
+                        isRawKeyEditor() || before.isNullOrEmpty() -> sendDownUpKeyEvents(KeyEvent.KEYCODE_DEL)
+                        else -> {
+                            val charsToDelete = KeyboardLayouts.computeDeleteWordLength(before)
+                            if (charsToDelete > 0) {
+                                ic.deleteSurroundingText(charsToDelete, 0)
+                            }
                         }
                     }
                     updateEditorContextState()
@@ -290,15 +350,17 @@ class KeskeImeService : InputMethodService(), LifecycleOwner, ViewModelStoreOwne
                         EnterKeyAction.GO -> ic.performEditorAction(EditorInfo.IME_ACTION_GO)
                         EnterKeyAction.NEXT -> ic.performEditorAction(EditorInfo.IME_ACTION_NEXT)
                         EnterKeyAction.DONE -> ic.performEditorAction(EditorInfo.IME_ACTION_DONE)
-                        EnterKeyAction.NEWLINE -> ic.commitText("\n", 1)
+                        EnterKeyAction.NEWLINE -> if (isRawKeyEditor()) {
+                            sendDownUpKeyEvents(KeyEvent.KEYCODE_ENTER)
+                        } else {
+                            ic.commitText("\n", 1)
+                        }
                     }
                     updateEditorContextState()
                 },
                 onMoveCursor = { delta ->
-                    val ic = currentInputConnection ?: return@KeyboardScreen
-                    val keyCode = if (delta > 0) KeyEvent.KEYCODE_DPAD_RIGHT else KeyEvent.KEYCODE_DPAD_LEFT
-                    ic.sendKeyEvent(KeyEvent(KeyEvent.ACTION_DOWN, keyCode))
-                    ic.sendKeyEvent(KeyEvent(KeyEvent.ACTION_UP, keyCode))
+                    if (currentInputConnection == null) return@KeyboardScreen
+                    sendDownUpKeyEvents(if (delta > 0) KeyEvent.KEYCODE_DPAD_RIGHT else KeyEvent.KEYCODE_DPAD_LEFT)
                     updateEditorContextState()
                 },
                 onGestureTick = {

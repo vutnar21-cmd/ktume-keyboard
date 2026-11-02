@@ -9,8 +9,8 @@ plugins {
 }
 
 // Опциональное чтение локального ключа подписи релиза из keystore.properties или переменных окружения.
-// Если ключа нет (например, при сборке на сервере F-Droid из исходников), assembleRelease собирает
-// чистый детерминированный APK для сверки Reproducible Builds.
+// Если ключа нет (например, при сборке из исходников на чужой машине), assembleRelease собирает
+// неподписанный app-release-unsigned.apk.
 val keystorePropertiesFile = rootProject.file("keystore.properties")
 val keystoreProperties = Properties().apply {
     if (keystorePropertiesFile.isFile) {
@@ -47,11 +47,10 @@ android {
         versionName = "1.3.0"
     }
 
-    // Требования F-Droid и воспроизводимых сборок (Reproducible Builds):
-    // не вшиваем зашифрованный ключом Google блок зависимостей.
+    // В APK для GitHub Releases не вшиваем блок зависимостей, зашифрованный ключом Google (прочитать его
+    // может только Google Play). В AAB для Google Play блок остаётся: Play проверяет по нему SDK.
     dependenciesInfo {
         includeInApk = false
-        includeInBundle = false
     }
 
     signingConfigs {
@@ -67,7 +66,7 @@ android {
 
     buildTypes {
         release {
-            // Не вшиваем META-INF/version-control-info.textproto для побайтовой воспроизводимости в F-Droid
+            // Не вшиваем META-INF/version-control-info.textproto: APK из одного коммита собирается побайтово одинаковым
             vcsInfo.include = false
             isMinifyEnabled = true
             isShrinkResources = true
@@ -103,15 +102,15 @@ tasks.withType<AbstractArchiveTask>().configureEach {
 }
 
 dependencies {
-    val composeBom = platform("androidx.compose:compose-bom:2024.09.00")
+    val composeBom = platform("androidx.compose:compose-bom:2026.09.00")
     implementation(composeBom)
     implementation("androidx.compose.ui:ui")
     implementation("androidx.compose.material3:material3")
     implementation("androidx.compose.ui:ui-tooling-preview")
-    implementation("androidx.activity:activity-compose:1.9.2")
-    implementation("androidx.lifecycle:lifecycle-service:2.8.6")
-    implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.8.6")
-    implementation("androidx.savedstate:savedstate-ktx:1.2.1")
-    implementation("androidx.datastore:datastore-preferences:1.1.1")
+    implementation("androidx.activity:activity-compose:1.13.0")
+    implementation("androidx.lifecycle:lifecycle-service:2.11.0")
+    implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.11.0")
+    implementation("androidx.savedstate:savedstate-ktx:1.5.0")
+    implementation("androidx.datastore:datastore-preferences:1.3.0")
     testImplementation("junit:junit:4.13.2")
 }

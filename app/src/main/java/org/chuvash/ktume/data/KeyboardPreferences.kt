@@ -33,7 +33,6 @@ data class KeyboardPreferences(
     val swipeUpFirstVariant: Boolean = true, // Быстрый ввод 1-го символа из Long-Press свайпом вверх
     val doubleSpaceComma: Boolean = true, // Двойной пробел ставит запятую ", "
     val showHyphenKey: Boolean = true,    // Отдельная клавиша дефиса "-" на главной странице + свайп влево от точки
-    val showParticlesStrip: Boolean = true, // Лента чувашских частиц и аффиксов включена по умолчанию
     val experimentalCapitalizeNames: Boolean = false, // Эксперимент: автозаглавные имена собственные
     val recentEmojis: List<String> = emptyList(), // Недавно использованные смайлики (до 24 шт.)
     val customRowsByLang: Map<KeyboardLang, List<List<String>>> = mapOf(

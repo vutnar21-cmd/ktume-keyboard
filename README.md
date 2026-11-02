@@ -7,7 +7,7 @@
 - Пакет: `org.chuvash.ktume` (`v1.3.0`, `versionCode = 4`)
 - Репозиторий: https://github.com/vutnar21-cmd/ktume-keyboard
 - `minSdk = 26` (Android 8.0), `targetSdk = 37` (Android 17), `compileSdk = 37`
-- Kotlin `2.4.21`, AGP `9.5.0`, Jetpack Compose (Material 3, BOM `2024.09.00`), DataStore `1.1.1`
+- Kotlin `2.4.21`, AGP `9.5.0`, Gradle `9.8.2`, Jetpack Compose (Material 3, BOM `2026.09.00`), DataStore `1.3.0`
 
 ### Скачать для Android (8.0+)
 
@@ -46,21 +46,22 @@
    - Общий цифровой ряд `1–0` сохраняет одинаковую высоту страниц `?123` и `=\<`. В числовых и телефонных
      полях автоматически открывается телефонная сетка `1234` (`3 × 4`), а клавиша `Enter` меняет векторную
      иконку под контекст поля (`🔍 Поиск`, `➤ Отправить`, `→ Перейти`, `⇥ Далее`, `✓ Готово`, `↵ Абзац`).
-5. **Чувашская морфология и типографика.**
-   - Движок сингармонизма (`ChuvashMorphemes` + `MorphemeEngine`): подбирает мягкие/твёрдые формы
-     частиц (`-и?`, `-ши?`, `-ха/-хе`, `-ҫкӗ`, `-тӑр/-тӗр`), множественного числа (`+сем`),
-     8 падежей (`+ра/+ре/+та/+те`, `+ран/+рен/+тан/+тен`, `+на/+не/+а/+е`, `+па/+пе`, …) и
-     принадлежности по последней гласной и окончанию слова.
+5. **Типографика и верхняя панель.**
    - Дефис отдельной клавишей и свайпом влево от точки; двойной пробел ставит `", "` (только если
      перед курсором одиночный пробел после буквы/цифры и нет выделения).
    - Единая однорядная верхняя панель (`36 dp` без скачков высоты): справа `[📋] [😊] [⚙️]`, слева —
-     либо встроенная в эту же строку капсула буфера обмена (по `📋`, вставка тапом с неявной конвертацией
-     `ăĕçÿ → ӑӗҫӳ`), либо лента чувашских частиц, либо кнопки правки `←`, `→` и `Вставить`.
+     либо встроенная в эту же строку капсула буфера обмена (по `📋`, вставка тапом), либо кнопки правки
+     `←`, `→` и `Вставить`.
+   - При вставке «ложная латиница» `ăĕçÿ` исправляется на `ӑӗҫӳ` только внутри слов с кириллицей
+     («Чăваш» → «Чӑваш»). Латинский текст («garçon», «Çăvaş») и поля паролей не меняются.
 6. **Автозаглавная как в Gboard и удаление Unicode.** Автозаглавная включается только в тех полях,
    которые сами запрашивают `TYPE_TEXT_FLAG_CAP_*` (в браузере, поиске, email, паролях и терминале
    клавиатура начинает со строчной), только на пустой строке или после конца предложения **с пробелом**
-   (`". "`), не мешая вводить `user.name@mail.ru`, `chuvash.org` и `./gradlew`. `Backspace` удаляет
-   целый графемный кластер (`BreakIterator`): суррогатные пары, ZWJ-эмодзи, составные символы.
+   (`". "`), не мешая вводить `user.name@mail.ru`, `chuvash.org` и `./gradlew`. В полях «всё заглавными»
+   (`CAP_CHARACTERS`: коды, номера) заглавные идут подряд. `Backspace` удаляет целый графемный кластер
+   (`BreakIterator`): суррогатные пары, ZWJ-эмодзи, составные символы. В пустом поле и в терминалах
+   (`TYPE_NULL`) `⌫` и `Enter` отправляются как нажатия клавиш — ячейки SMS-кода и консоли их понимают.
+   Выбранная раскладка запоминается и совпадает с системным подтипом клавиатуры (язык проверки орфографии).
 7. **Доступность, звук и вибрация.** Клавиши и элементы настроек имеют семантику TalkBack
    (`Role.Button` / `Role.Switch`, `contentDescription`, `onClick`, `selected`); отменённый жест
    не вызывает ввод. Щелчок клавиш учитывает `STREAM_MUSIC` и ползунок `soundVolumePercent`.
@@ -79,7 +80,7 @@
 | Шрифт | Comfortaa `26 sp` |
 | Задержка Long-Press | `210 мс` |
 | Нижний отступ | `20 dp` |
-| Цифровой ряд / лента частиц / свайп вверх | включены |
+| Цифровой ряд / свайп вверх | включены |
 | Всплывающая «капля» / компактный альбомный режим | включены |
 | Микро-метки в углах клавиш | выключены |
 | Автозаглавные имена (эксперимент) | выключены |
@@ -95,10 +96,11 @@ ktume-keyboard/
 ├── build.gradle.kts                  # AGP 9.5.0, Kotlin 2.4.21 (built-in + compose-плагин)
 ├── settings.gradle.kts
 ├── gradle.properties                 # JVM-параметры, kotlin.incremental=false
+├── keystore.properties.example       # Шаблон настроек подписи релиза (копируется в keystore.properties)
 ├── release.bat                       # Запуск локальной автоматизации релиза (обёртка над scripts/release.ps1)
-├── scripts/release.ps1               # Автосборка, сверка подписи F-Droid, тег и публикация в GitHub Releases
-├── docs/                             # Локальные SVG-кнопки скачивания и QR-код для витрины README
-├── fastlane/metadata/android/        # Описания, иконка 512×512 и changelogs/<versionCode>.txt для F-Droid
+├── scripts/release.ps1               # Автосборка, проверка подписи, тег и публикация в GitHub Releases
+├── docs/                             # SVG-кнопки скачивания, QR-код и материалы по названию приложения
+├── fastlane/metadata/android/        # Карточка для магазинов: описания, иконка, скриншоты, changelogs/<versionCode>.txt
 ├── tasks/                            # Каталог задач на развитие и индекс статусов (tasks/README.md)
 └── app/
     ├── build.gradle.kts              # SDK 26..37, Compose BOM, DataStore
@@ -113,13 +115,11 @@ ktume-keyboard/
         │       ├── ui/theme/
         │       │   └── ThemePalettes.kt        # шрифт Comfortaa, 7 палитр и Material 3 ColorScheme
         │       ├── data/
-        │       │   ├── ChuvashMorphemes.kt     # словарь чувашских частиц и аффиксов
         │       │   ├── ChuvashNames.kt         # базовый словарь имён собственных
         │       │   ├── EditorTextLogic.kt      # Unicode-графемы, автозаглавная, контекст поля, геометрия
         │       │   ├── EmojiCatalog.kt         # локальный каталог эмодзи по 6 категориям
         │       │   ├── KeyboardLayouts.kt      # раскладки, пресеты, слои символов, Numpad, Long-Press
         │       │   ├── KeyboardPreferences.kt  # неизменяемая модель настроек клавиатуры
-        │       │   ├── MorphemeEngine.kt       # сингармонизм и правила стыка морфем
         │       │   └── PreferencesRepository.kt# PreferencesState и хранилище DataStore
         │       └── ime/
         │           ├── EmojiPickerPage.kt      # полноразмерная страница эмодзи
@@ -136,10 +136,9 @@ ktume-keyboard/
         │           ├── SettingsPreviewBench.kt # живое тестовое поле и закреплённый стенд клавиатуры
         │           ├── SettingsRowEditor.kt    # интерактивный конструктор рядов раскладки
         │           ├── SettingsSections.kt     # содержимое 5 вкладок настроек
-        │           └── Toolbar.kt              # однорядная верхняя полоса (36 dp): частицы / правка / буфер
+        │           └── Toolbar.kt              # однорядная верхняя полоса (36 dp): правка / буфер / вкладки эмодзи
         └── test/java/org/chuvash/ktume/
             ├── data/ChuvashNamesTest.kt
-            ├── data/MorphemeEngineTest.kt
             └── ime/KeyboardLayoutsTest.kt
 ```
 
@@ -149,8 +148,8 @@ ktume-keyboard/
   и `toColorScheme()`). Не зависит от `data` и `ime`.
 - **`data`** — чистые данные, текстовые алгоритмы и хранение без зависимости от Android IME:
   `KeyboardPreferences`, `PreferencesState` / `PreferencesRepository` (DataStore с версионированными
-  ключами и гейтом загрузки `loaded`), `KeyboardLayouts`, `EditorTextLogic`, `EmojiCatalog`, словарь и
-  движок морфем (`ChuvashMorphemes`, `MorphemeEngine`), словарь имён (`ChuvashNames`).
+  ключами и гейтом загрузки `loaded`), `KeyboardLayouts`, `EditorTextLogic`, `EmojiCatalog`,
+  словарь имён (`ChuvashNames`).
 - **`ime`** — сервис клавиатуры `KeskeImeService`, модульный Compose-интерфейс клавиатуры
   (`KeyboardScreen`, `KeyboardRows`, `Keys`, `FunctionalKeys`, `Toolbar`, `HoneycombHexGrid`,
   `NumpadGridView`, `EmojiPickerPage`, `KeskeIcons`) и студия кастомизации (`SettingsActivity`,
@@ -161,7 +160,7 @@ ktume-keyboard/
 ## 3. Сборка и проверка
 
 Gradle-демону и Android Lint нужен JDK 21 (локальный путь `org.gradle.java.home` задаётся в
-пользовательском `~/.gradle/gradle.properties`, чтобы репозиторий оставался переносимым на Linux / F-Droid):
+пользовательском `~/.gradle/gradle.properties`, чтобы репозиторий собирался и на других машинах):
 
 ```bash
 export JAVA_HOME="C:/Program Files/COMSOL/COMSOL64/Multiphysics/java/win64/jre"
@@ -170,21 +169,23 @@ export JAVA_HOME="C:/Program Files/COMSOL/COMSOL64/Multiphysics/java/win64/jre"
 
 Отладочный APK: `app/build/outputs/apk/debug/app-debug.apk`.
 
-### Релизная сборка (GitHub Releases, F-Droid Reproducible Builds, Google Play)
+### Релизная сборка (GitHub Releases, Google Play, RuStore)
 
 1. Скопируйте [`keystore.properties.example`](keystore.properties.example) в `keystore.properties`
    (добавлен в `.gitignore`), сгенерируйте ключ `keytool` по инструкции внутри файла и укажите пароли.
+   **Храните копию `.jks` и паролей вне папки проекта:** отпечаток сертификата опубликован выше и
+   проверяется Obtainium, без этого ключа выпустить обновление невозможно.
 2. Соберите нужный артефакт:
    - `./gradlew assembleRelease --no-daemon` → подписанный `app/build/outputs/apk/release/app-release.apk`
-     (для GitHub Releases, F-Droid Reproducible Builds и RuStore; без `keystore.properties` собирается
-     детерминированный `app-release-unsigned.apk` для сверки на сервере F-Droid).
+     (для GitHub Releases и RuStore; без `keystore.properties` собирается неподписанный
+     `app-release-unsigned.apk`).
    - `./gradlew bundleRelease --no-daemon` → `app/build/outputs/bundle/release/app-release.aab`
      (для Google Play).
-3. Метаданные карточки магазина (описание, иконка `512×512`, список изменений) хранятся в
-   `fastlane/metadata/android/` (`ru-RU` и `en-US`).
+3. Метаданные карточки магазина (описание, иконка `512×512`, скриншоты в `images/phoneScreenshots/`,
+   список изменений) хранятся в `fastlane/metadata/android/` (`ru-RU` и `en-US`).
 4. **Автоматический выпуск новых версий одной командой (`release.bat`):**
-   - Приватный ключ `.jks` никуда в облако не загружается — сборка, проверка воспроизводимости F-Droid
-     и публикация выполняются локально через официальный `gh` CLI (`winget install --id GitHub.cli -e`,
+   - Приватный ключ `.jks` никуда в облако не загружается — сборка, проверка подписи и публикация
+     выполняются локально через официальный `gh` CLI (`winget install --id GitHub.cli -e`,
      затем один раз `gh auth login`).
    - Для выпуска новой версии поднимите `versionCode` и `versionName` в `app/build.gradle.kts`, добавьте
      `fastlane/metadata/android/{ru-RU,en-US}/changelogs/<versionCode>.txt` (до 500 байт), закоммитьте изменения и запустите:
@@ -192,18 +193,20 @@ export JAVA_HOME="C:/Program Files/COMSOL/COMSOL64/Multiphysics/java/win64/jre"
      .\release.bat -DryRun   # предварительная проверка сборки, подписи и текста релиза без пуша
      .\release.bat           # пуш main, тег v<versionName> и публикация ktume-<versionName>.apk на GitHub
      ```
-   - После появления нового тега и файла `ktume-<versionName>.apk` на GitHub сервер F-Droid автоматически
-     обнаружит обновление (`UpdateCheckMode: Tags`), пересоберёт APK из исходников и сверит вашу подпись.
+   - После публикации `ktume-<versionName>.apk` на GitHub пользователи Obtainium получат обновление
+     автоматически, а Obtainium сверит подпись с опубликованным отпечатком.
 
 `kotlin.incremental=false` сохранён намеренно для предотвращения `java.rmi.UnmarshalException`
 в Kotlin-демоне на Windows при наличии пробелов в путях.
 
-### Тесты (31 unit-тест)
+### Тесты (28 unit-тестов)
 
-- **`KeyboardLayoutsTest`** (20 тестов): сохранность всех клавиш в Hex для каждого языка и пресета,
+- **`KeyboardLayoutsTest`** (23 теста): сохранность всех клавиш в Hex для каждого языка и пресета,
   выбор вариантов Long-Press на всей правой половине справа налево с сохранением частотности и
   контракта микро-метки, свайп вверх `swipeUpFirstVariant`, конечный автомат `nextShiftStateOnTap`,
-  сохранение основы для сингармонизма после пробела без затрагивания `\n` и пробелов после пунктуации,
+  синхронизация автозаглавной `resolveAutoShift` (повторное включение в полях `CAP_CHARACTERS`),
+  исправление «ложной латиницы» только в кириллических словах, распознавание полей паролей,
+  сопоставление системных подтипов IME с раскладками,
   безопасное удаление слова по свайпу `⌫` с защитой от разрезания суррогатной пары на границе окна,
   6 категорий смайликов (кратных 8 колонкам) и MRU-очередь `recentEmojis`, точное совпадение высоты
   `computeKeyboardBodyHeightDp` для прямоугольной и сотовой раскладок, контекстный `Enter` и
@@ -211,9 +214,6 @@ export JAVA_HOME="C:/Program Files/COMSOL/COMSOL64/Multiphysics/java/win64/jre"
   ZWJ-эмодзи, безопасная замена двойного пробела, пустая строка и правила автозаглавной Gboard
   (`resolveEditorCapFlags`, `shouldAutoCapitalize`), форма слоёв символов, телефонная сетка Numpad и
   эталонные значения `KeyboardPreferences`.
-- **`MorphemeEngineTest`** (6 тестов): определение ряда сингармонизма, чередование падежных форм
-  после гласных и согласных (`-ра/-та`, `-ран/-тан`, `-на/-а`), сохранение заглавной буквы при
-  склейке, отображение дефиса у частиц и скрытие экспериментальных морфем по умолчанию.
 - **`ChuvashNamesTest`** (5 тестов): капитализация имён со строчной буквы и игнорирование обычных
   слов и уже капитализированных имён.
 
@@ -225,9 +225,9 @@ export JAVA_HOME="C:/Program Files/COMSOL/COMSOL64/Multiphysics/java/win64/jre"
 
 - **Финальное название приложения** ([`004`](tasks/004-app-name.md)): утверждено название
   **Кӗске Тӳме / Kĕske Tüme** (кратко **кТӳме / kTüme**) и идентификатор пакета `org.chuvash.ktume` (на приёмке).
-- **Лингвистическая вычитка** ([`002`](tasks/002-chuvash-morphemes.md), [`005`](tasks/005-longpress-glyphs.md)):
-  проверка носителем спорных стыков морфем (после сонорных `л, н, р, й, м` и форм принадлежности),
-  а также очистка дублей и выверка частотности в таблицах Long-Press.
+- **Таблицы Long-Press** ([`005`](tasks/005-longpress-glyphs.md)): очистка дублей и выверка
+  частотности вариантов. Лента частиц и аффиксов ([`002`](tasks/002-chuvash-morphemes.md)) удалена
+  по решению владельца.
 - **Эргономика нажатий и зазоров** ([`015`](tasks/015-key-gap-8.md), [`016`](tasks/016-hyphen-vs-space.md),
   [`018`](tasks/018-tap-in-gap.md)): подбор финальных `hGap`/`vGap` на устройстве, бесшовные хитбоксы
   клавиш в зазорах (`gap / 2`) и защита от случайного нажатия дефиса вместо пробела.

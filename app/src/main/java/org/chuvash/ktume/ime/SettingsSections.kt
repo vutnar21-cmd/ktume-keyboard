@@ -317,13 +317,6 @@ internal fun InputSettingsSection(
             onCheckedChange = { savePrefs(prefs.copy(showNumberRow = it)) }
         )
         SettingToggleRow(
-            title = "Чувашские частицы и аффиксы (по сингармонизму)",
-            subtitle = "Подбирает -и?, -ши?, -ха, -ҫкӗ и мягкие/твёрдые аффиксы (+сем, +ра/+ре, +па/+пе, +тан/+тен)",
-            checked = prefs.showParticlesStrip,
-            palette = palette,
-            onCheckedChange = { savePrefs(prefs.copy(showParticlesStrip = it)) }
-        )
-        SettingToggleRow(
             title = "Вторичные микро-метки (Sub-labels) в углу клавиш",
             subtitle = "По умолчанию выключены для чистого вида клавиш",
             checked = prefs.showSubLabels,
