@@ -17,8 +17,8 @@
 4. **Буфер обмена.** При нажатии пользователем кнопки буфера обмена текст читается только для локального
    отображения на верхней панели клавиатуры и вставки в активное поле ввода; он никуда не сохраняется
    и не передаётся.
-5. **Разрешения.** Единственное запрашиваемое разрешение — `android.permission.VIBRATE` (используется
-   исключительно для тактильного отклика при нажатии клавиш и может быть отключено в настройках).
+5. **Разрешения.** Приложение не запрашивает у пользователя ни одного разрешения. Тактильный отклик
+   клавиш выполняется системным механизмом Android и отключается в настройках клавиатуры или телефона.
 
 ---
 
@@ -34,5 +34,5 @@ transmit, share, or store any personal data or typed text on external servers.
    private on-device storage (Android Jetpack DataStore).
 4. **Clipboard.** Clipboard content is accessed on-device only when you explicitly tap the clipboard button
    or paste action; it is never logged, persisted, or transmitted anywhere.
-5. **Permissions.** The only requested permission is `android.permission.VIBRATE`, used solely for optional
-   key-press haptic feedback.
+5. **Permissions.** The app asks the user for no permissions at all. Key-press haptic feedback uses the
+   standard Android system mechanism and can be turned off in the keyboard or phone settings.

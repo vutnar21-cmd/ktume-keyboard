@@ -43,8 +43,8 @@ import org.chuvash.ktume.ui.theme.KeyboardPalette
  *   1) При нажатии `[📋]` — встроенная капсула буфера обмена на всю левую часть строки (тап по тексту
  *      вставляет содержимое).
  *   2) На странице смайликов (`isEmojiPage`) — 6 компактных вкладок категорий (`🕒 😊 👍 ❤️ 🌿 ☕`).
- *   3) В остальных случаях — кнопки курсора `[←]` `[→]` (с автоповтором при удержании) и быстрая
- *      кнопка «Вставить» в 1 касание.
+ *   3) В остальных случаях — кнопки курсора `[←]` `[→]` с автоповтором при удержании (настройка
+ *      `showCursorArrows`; без неё левая часть пуста). Вставка — только через `[📋]`.
  *
  * При вставке «ложная латиница» (`ăĕçÿ → ӑӗҫӳ`) исправляется только в словах с кириллицей и никогда —
  * в полях паролей.
@@ -62,6 +62,7 @@ internal fun TopToolbarStrip(
     palette: KeyboardPalette,
     isEmojiPage: Boolean,
     isPasswordField: Boolean,
+    showCursorArrows: Boolean,
     emojiCategories: List<EmojiCategory>,
     selectedEmojiCategoryIdx: Int,
     toolbarOverlay: ToolbarOverlay,
@@ -128,12 +129,10 @@ internal fun TopToolbarStrip(
                     )
                 }
 
-                else -> {
-                    CursorAndEditStrip(
-                        clipboard = clipboard,
+                showCursorArrows -> {
+                    CursorArrowsStrip(
                         palette = palette,
-                        onMoveCursor = onMoveCursor,
-                        onPasteText = pasteFromClipboard
+                        onMoveCursor = onMoveCursor
                     )
                 }
             }
@@ -273,14 +272,10 @@ private fun InlineClipboardCapsule(
 }
 
 @Composable
-private fun CursorAndEditStrip(
-    clipboard: ClipboardManager?,
+private fun CursorArrowsStrip(
     palette: KeyboardPalette,
-    onMoveCursor: (Int) -> Unit,
-    onPasteText: (String) -> Unit
+    onMoveCursor: (Int) -> Unit
 ) {
-    val currentOnPasteText by rememberUpdatedState(onPasteText)
-
     Row(
         horizontalArrangement = Arrangement.spacedBy(6.dp),
         verticalAlignment = Alignment.CenterVertically
@@ -297,45 +292,6 @@ private fun CursorAndEditStrip(
             palette = palette,
             onStep = { onMoveCursor(1) }
         )
-        Surface(
-            color = palette.specialKeyBg,
-            shape = RoundedCornerShape(10.dp),
-            modifier = Modifier
-                .height(32.dp)
-                .semantics(mergeDescendants = true) {
-                    role = Role.Button
-                    contentDescription = "Вставить из буфера обмена"
-                    onClick(label = "Вставить") {
-                        val raw = readCurrentClipboardText(clipboard)
-                        if (raw.isNotEmpty()) {
-                            currentOnPasteText(raw)
-                        }
-                        true
-                    }
-                }
-                .pointerInput(clipboard) {
-                    detectTapGestures(onTap = {
-                        val raw = readCurrentClipboardText(clipboard)
-                        if (raw.isNotEmpty()) {
-                            currentOnPasteText(raw)
-                        }
-                    })
-                }
-        ) {
-            Box(
-                contentAlignment = Alignment.Center,
-                modifier = Modifier.padding(horizontal = 11.dp)
-            ) {
-                Text(
-                    text = "Вставить",
-                    color = palette.keyText,
-                    fontFamily = KeskeFontFamily,
-                    fontSize = 12.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    maxLines = 1
-                )
-            }
-        }
     }
 }
 

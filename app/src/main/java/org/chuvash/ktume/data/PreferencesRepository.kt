@@ -76,7 +76,7 @@ object PreferencesRepository {
 
     private val KEY_PALETTE = stringPreferencesKey("palette_id_v5")
     private val KEY_CV_PRESET = stringPreferencesKey("cv_preset_v3")
-    private val KEY_HEIGHT = floatPreferencesKey("key_height_dp_v5")
+    private val KEY_HEIGHT = floatPreferencesKey("key_height_dp_v6")
     private val KEY_RADIUS = floatPreferencesKey("key_radius_dp_v5")
     private val KEY_GAP_H = floatPreferencesKey("key_gap_h_dp_v6")
     private val KEY_GAP_V = floatPreferencesKey("key_gap_v_dp_v6")
@@ -85,7 +85,7 @@ object PreferencesRepository {
     private val KEY_FONT_SIZE = floatPreferencesKey("font_size_sp_v5")
     private val KEY_BOTTOM_INSET = floatPreferencesKey("bottom_inset_dp_v5")
     private val KEY_SOUND_VOLUME = floatPreferencesKey("sound_volume_pct_v3")
-    private val KEY_LONG_PRESS = intPreferencesKey("long_press_ms_v5")
+    private val KEY_LONG_PRESS = intPreferencesKey("long_press_ms_v6")
     private val KEY_LAYOUTS = stringSetPreferencesKey("enabled_layouts")
     private val KEY_NUM_ROW = booleanPreferencesKey("show_num_row")
     private val KEY_SUB_LABELS = booleanPreferencesKey("show_sub_labels_v3")
@@ -97,7 +97,8 @@ object PreferencesRepository {
     private val KEY_AUTO_CAP = booleanPreferencesKey("auto_capitalize")
     private val KEY_SWIPE_UP_FIRST = booleanPreferencesKey("swipe_up_first_v1")
     private val KEY_DOUBLE_SPACE_COMMA = booleanPreferencesKey("double_space_comma")
-    private val KEY_SHOW_HYPHEN = booleanPreferencesKey("show_hyphen_key")
+    private val KEY_SHOW_HYPHEN = booleanPreferencesKey("show_hyphen_key_v2")
+    private val KEY_CURSOR_ARROWS = booleanPreferencesKey("show_cursor_arrows_v1")
     private val KEY_EXP_CAP_NAMES = booleanPreferencesKey("exp_capitalize_names_v1")
     private val KEY_RECENT_EMOJIS = stringPreferencesKey("recent_emojis_v1")
     /** Пишется отдельно от [update]: переключение языка не перезаписывает остальные настройки. */
@@ -151,30 +152,32 @@ object PreferencesRepository {
                     }
                     deserializeRows(p[rowsKey(lang)], def)
                 }
+                val defaults = KeyboardPreferences()
                 val loaded = KeyboardPreferences(
-                    paletteId = p[KEY_PALETTE] ?: "obsidian_forest",
+                    paletteId = p[KEY_PALETTE] ?: defaults.paletteId,
                     chuvashPreset = presetId,
-                    keyHeightDp = p[KEY_HEIGHT] ?: 48f,
-                    keyCornerRadiusDp = p[KEY_RADIUS] ?: 14f,
-                    keyGapHDp = p[KEY_GAP_H] ?: p[KEY_GAP_LEGACY] ?: 3f,
-                    keyGapVDp = p[KEY_GAP_V] ?: 7f,
-                    fontSizeSp = p[KEY_FONT_SIZE] ?: 26f,
-                    bottomInsetDp = p[KEY_BOTTOM_INSET] ?: 20f,
-                    soundVolumePercent = p[KEY_SOUND_VOLUME] ?: 70f,
-                    longPressDelayMs = p[KEY_LONG_PRESS] ?: 210,
-                    enabledLayouts = p[KEY_LAYOUTS] ?: setOf("cv", "ru", "lat"),
-                    showNumberRow = p[KEY_NUM_ROW] ?: true,
-                    showSubLabels = p[KEY_SUB_LABELS] ?: false,
-                    showKeyPressPopup = p[KEY_PRESS_POPUP] ?: true,
-                    compactLandscape = p[KEY_COMPACT_LANDSCAPE] ?: true,
-                    hexagonalGrid = p[KEY_HEX_GRID] ?: false,
-                    soundEnabled = p[KEY_SOUND] ?: true,
-                    vibrationEnabled = p[KEY_VIBRATE] ?: true,
-                    autoCapitalize = p[KEY_AUTO_CAP] ?: true,
-                    swipeUpFirstVariant = p[KEY_SWIPE_UP_FIRST] ?: true,
-                    doubleSpaceComma = p[KEY_DOUBLE_SPACE_COMMA] ?: true,
-                    showHyphenKey = p[KEY_SHOW_HYPHEN] ?: true,
-                    experimentalCapitalizeNames = p[KEY_EXP_CAP_NAMES] ?: false,
+                    keyHeightDp = p[KEY_HEIGHT] ?: defaults.keyHeightDp,
+                    keyCornerRadiusDp = p[KEY_RADIUS] ?: defaults.keyCornerRadiusDp,
+                    keyGapHDp = p[KEY_GAP_H] ?: p[KEY_GAP_LEGACY] ?: defaults.keyGapHDp,
+                    keyGapVDp = p[KEY_GAP_V] ?: defaults.keyGapVDp,
+                    fontSizeSp = p[KEY_FONT_SIZE] ?: defaults.fontSizeSp,
+                    bottomInsetDp = p[KEY_BOTTOM_INSET] ?: defaults.bottomInsetDp,
+                    soundVolumePercent = p[KEY_SOUND_VOLUME] ?: defaults.soundVolumePercent,
+                    longPressDelayMs = p[KEY_LONG_PRESS] ?: defaults.longPressDelayMs,
+                    enabledLayouts = p[KEY_LAYOUTS] ?: defaults.enabledLayouts,
+                    showNumberRow = p[KEY_NUM_ROW] ?: defaults.showNumberRow,
+                    showSubLabels = p[KEY_SUB_LABELS] ?: defaults.showSubLabels,
+                    showKeyPressPopup = p[KEY_PRESS_POPUP] ?: defaults.showKeyPressPopup,
+                    compactLandscape = p[KEY_COMPACT_LANDSCAPE] ?: defaults.compactLandscape,
+                    hexagonalGrid = p[KEY_HEX_GRID] ?: defaults.hexagonalGrid,
+                    soundEnabled = p[KEY_SOUND] ?: defaults.soundEnabled,
+                    vibrationEnabled = p[KEY_VIBRATE] ?: defaults.vibrationEnabled,
+                    autoCapitalize = p[KEY_AUTO_CAP] ?: defaults.autoCapitalize,
+                    swipeUpFirstVariant = p[KEY_SWIPE_UP_FIRST] ?: defaults.swipeUpFirstVariant,
+                    doubleSpaceComma = p[KEY_DOUBLE_SPACE_COMMA] ?: defaults.doubleSpaceComma,
+                    showHyphenKey = p[KEY_SHOW_HYPHEN] ?: defaults.showHyphenKey,
+                    showCursorArrows = p[KEY_CURSOR_ARROWS] ?: defaults.showCursorArrows,
+                    experimentalCapitalizeNames = p[KEY_EXP_CAP_NAMES] ?: defaults.experimentalCapitalizeNames,
                     recentEmojis = deserializeRecentEmojis(p[KEY_RECENT_EMOJIS]),
                     customRowsByLang = customMap
                 )
@@ -250,6 +253,7 @@ object PreferencesRepository {
                         p[KEY_SWIPE_UP_FIRST] = latest.swipeUpFirstVariant
                         p[KEY_DOUBLE_SPACE_COMMA] = latest.doubleSpaceComma
                         p[KEY_SHOW_HYPHEN] = latest.showHyphenKey
+                        p[KEY_CURSOR_ARROWS] = latest.showCursorArrows
                         p[KEY_EXP_CAP_NAMES] = latest.experimentalCapitalizeNames
                         p[KEY_RECENT_EMOJIS] = serializeRecentEmojis(latest.recentEmojis)
                         latest.customRowsByLang.forEach { (lang, rows) ->

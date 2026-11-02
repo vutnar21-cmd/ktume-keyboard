@@ -199,7 +199,7 @@ internal fun AppearanceSettingsSection(
         )
         Spacer(modifier = Modifier.height(4.dp))
         SettingSliderRow(
-            label = "Высота клавиш (по умолч. 48): ${prefs.keyHeightDp.roundToInt()} dp",
+            label = "Высота клавиш (по умолч. 50): ${prefs.keyHeightDp.roundToInt()} dp",
             value = prefs.keyHeightDp,
             range = 38f..64f,
             onValueChange = { savePrefsDebounced(prefs.copy(keyHeightDp = it)) }
@@ -223,7 +223,7 @@ internal fun AppearanceSettingsSection(
             onValueChange = { savePrefsDebounced(prefs.copy(keyGapVDp = it)) }
         )
         SettingSliderRow(
-            label = "Размер шрифта Comfortaa (по умолч. 26): ${prefs.fontSizeSp.roundToInt()} sp",
+            label = "Размер шрифта клавиш (по умолч. 26): ${prefs.fontSizeSp.roundToInt()} sp",
             value = prefs.fontSizeSp,
             range = 14f..28f,
             onValueChange = { savePrefsDebounced(prefs.copy(fontSizeSp = it)) }
@@ -286,17 +286,24 @@ internal fun InputSettingsSection(
         }
         SettingToggleRow(
             title = "Тактильный виброотклик при нажатии",
-            subtitle = "Короткая мягкая вибрация клавиш и лёгкий микро-тик жестов",
+            subtitle = "Системный отклик клавиатуры Android: сила и отключение — в настройках телефона",
             checked = prefs.vibrationEnabled,
             palette = palette,
             onCheckedChange = { savePrefs(prefs.copy(vibrationEnabled = it)) }
         )
         SettingToggleRow(
             title = "Клавиша дефиса «-» на главной странице",
-            subtitle = "Отдельная кнопка рядом с точкой + быстрый свайп влево от точки «.»",
+            subtitle = "По умолчанию выключена, чтобы пробел был шире. Дефис всегда можно ввести свайпом влево от точки «.»",
             checked = prefs.showHyphenKey,
             palette = palette,
             onCheckedChange = { savePrefs(prefs.copy(showHyphenKey = it)) }
+        )
+        SettingToggleRow(
+            title = "Стрелки курсора на верхней панели",
+            subtitle = "Кнопки ← и → с автоповтором слева от значков буфера, смайликов и настроек",
+            checked = prefs.showCursorArrows,
+            palette = palette,
+            onCheckedChange = { savePrefs(prefs.copy(showCursorArrows = it)) }
         )
         SettingToggleRow(
             title = "Двойной пробел ставит запятую «, »",

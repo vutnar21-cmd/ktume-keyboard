@@ -317,6 +317,7 @@ fun KeyboardScreen(
                 palette = palette,
                 isEmojiPage = keyboardMode == KeyboardMode.EMOJI_PAGE,
                 isPasswordField = isPasswordField,
+                showCursorArrows = renderPrefs.showCursorArrows,
                 emojiCategories = emojiCategories,
                 selectedEmojiCategoryIdx = emojiCategoryIdx,
                 toolbarOverlay = toolbarOverlay,
