@@ -4,9 +4,7 @@ import android.content.Intent
 import android.inputmethodservice.InputMethodService
 import android.media.AudioManager
 import android.os.Build
-import android.os.VibrationEffect
-import android.os.Vibrator
-import android.os.VibratorManager
+import android.view.HapticFeedbackConstants
 import android.view.KeyEvent
 import android.view.View
 import android.view.inputmethod.EditorInfo
@@ -64,18 +62,8 @@ class KesjeImeService : InputMethodService(), LifecycleOwner, ViewModelStoreOwne
     private val savedStateRegistryController = SavedStateRegistryController.create(this)
     override val savedStateRegistry: SavedStateRegistry get() = savedStateRegistryController.savedStateRegistry
 
-    private val cachedVibrator: Vibrator? by lazy {
-        try {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                (getSystemService(VIBRATOR_MANAGER_SERVICE) as? VibratorManager)?.defaultVibrator
-            } else {
-                @Suppress("DEPRECATION")
-                getSystemService(VIBRATOR_SERVICE) as? Vibrator
-            }
-        } catch (_: Exception) {
-            null
-        }
-    }
+    /** Вид клавиатуры: через него идёт системный тактильный отклик (`performHapticFeedback`). */
+    private var keyboardView: View? = null
 
     private val cachedAudioManager: AudioManager? by lazy {
         getSystemService(AUDIO_SERVICE) as? AudioManager
@@ -213,27 +201,21 @@ class KesjeImeService : InputMethodService(), LifecycleOwner, ViewModelStoreOwne
         ic.commitText(fixed, 1)
     }
 
+    /**
+     * Системный отклик клавиатуры: учитывает настройки телефона (вибрация клавиатуры, сила отклика)
+     * и не требует разрешения `VIBRATE`.
+     */
     private fun triggerFeedback(prefs: KeyboardPreferences) {
         if (prefs.vibrationEnabled) {
-            try {
-                cachedVibrator?.vibrate(VibrationEffect.createOneShot(14L, VibrationEffect.DEFAULT_AMPLITUDE))
-            } catch (_: Exception) {
-            }
+            keyboardView?.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
         }
         playKeypressSound(cachedAudioManager, prefs)
     }
 
-    /** Короткий лёгкий вибро-тик для жестов (свайп вверх 20 dp, выбор варианта Long-Press, шаг курсора). */
+    /** Лёгкий тик для жестов (свайп вверх 20 dp, выбор варианта Long-Press, шаг курсора). */
     private fun triggerGestureTick(prefs: KeyboardPreferences) {
-        if (!prefs.vibrationEnabled) return
-        try {
-            val effect = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                VibrationEffect.createPredefined(VibrationEffect.EFFECT_TICK)
-            } else {
-                VibrationEffect.createOneShot(6L, 65)
-            }
-            cachedVibrator?.vibrate(effect)
-        } catch (_: Exception) {
+        if (prefs.vibrationEnabled) {
+            keyboardView?.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
         }
     }
 
@@ -246,6 +228,7 @@ class KesjeImeService : InputMethodService(), LifecycleOwner, ViewModelStoreOwne
             view.setViewTreeViewModelStoreOwner(this)
             view.setViewTreeSavedStateRegistryOwner(this)
         }
+        keyboardView = composeView
         window?.window?.decorView?.let { decorView ->
             decorView.setViewTreeLifecycleOwner(this)
             decorView.setViewTreeViewModelStoreOwner(this)

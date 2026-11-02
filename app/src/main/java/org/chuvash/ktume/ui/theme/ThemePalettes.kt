@@ -14,15 +14,15 @@ import org.chuvash.ktume.R
 /**
  * МОДУЛЬ: ThemePalettes.kt
  * Здесь описаны:
- * 1) Единый шрифт Comfortaa (KesjeFontFamily) и типографика приложения;
+ * 1) Единый шрифт Kesje Rounded (Comfortaa с русской «т», KesjeFontFamily) и типографика приложения;
  * 2) 7 цветовых палитр клавиатуры (KesjePalettes) и сквозная конвертация в Material 3 ColorScheme.
  * Настройки (KeyboardPreferences) и хранилище DataStore (PreferencesRepository) вынесены в пакет `data`.
  */
 val KesjeFontFamily = FontFamily(
-    Font(R.font.comfortaa, FontWeight.Normal),
-    Font(R.font.comfortaa, FontWeight.Medium),
-    Font(R.font.comfortaa, FontWeight.SemiBold),
-    Font(R.font.comfortaa, FontWeight.Bold)
+    Font(R.font.kesje_rounded, FontWeight.Normal),
+    Font(R.font.kesje_rounded, FontWeight.Medium),
+    Font(R.font.kesje_rounded, FontWeight.SemiBold),
+    Font(R.font.kesje_rounded, FontWeight.Bold)
 )
 
 val KesjeTypography = Typography(
@@ -165,7 +165,7 @@ object KesjePalettes {
         isDark = true,
         boardBg = Color(0xFF1A1D21),
         keyBg = Color(0xFF282C33),
-        specialKeyBg = Color(0xFF20242A),
+        specialKeyBg = Color(0xFF363C46),
         accentBg = Color(0xFF8AB4F8),
         accentText = Color(0xFF121820),
         keyText = Color(0xFFEAECEF),
@@ -179,7 +179,7 @@ object KesjePalettes {
         isDark = true,
         boardBg = Color(0xFF111614),
         keyBg = Color(0xFF1E2723),
-        specialKeyBg = Color(0xFF171F1B),
+        specialKeyBg = Color(0xFF2A3832),
         accentBg = Color(0xFF68B684),
         accentText = Color(0xFF0E1511),
         keyText = Color(0xFFE5F0EA),

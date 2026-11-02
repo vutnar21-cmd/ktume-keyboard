@@ -207,14 +207,16 @@ class KeyboardLayoutsTest {
     fun defaultPreferences_matchOptimalPresetAndBottomInset20() {
         val prefs = KeyboardPreferences()
         assertEquals("obsidian_forest", prefs.paletteId)
-        assertEquals(48f, prefs.keyHeightDp, 0.001f)
+        assertEquals(50f, prefs.keyHeightDp, 0.001f)
         assertEquals(14f, prefs.keyCornerRadiusDp, 0.001f)
         assertEquals(3f, prefs.keyGapHDp, 0.001f)
         assertEquals(7f, prefs.keyGapVDp, 0.001f)
         assertEquals(26f, prefs.fontSizeSp, 0.001f)
         assertEquals(20f, prefs.bottomInsetDp, 0.001f)
-        assertEquals(210, prefs.longPressDelayMs)
+        assertEquals(300, prefs.longPressDelayMs)
         assertTrue(prefs.showNumberRow)
+        assertFalse("Hyphen key is off by default so the space bar is wider", prefs.showHyphenKey)
+        assertTrue(prefs.showCursorArrows)
         assertTrue(prefs.swipeUpFirstVariant)
         assertTrue(prefs.showKeyPressPopup)
         assertTrue(prefs.compactLandscape)
@@ -511,7 +513,7 @@ class KeyboardLayoutsTest {
     fun resolveEffectiveGeometry_compactsLandscapeWithoutMutatingPortraitDefaults() {
         val prefs = KeyboardPreferences()
         val portrait = KeyboardLayouts.resolveEffectiveGeometry(prefs, isLandscape = false)
-        assertEquals(48f, portrait.keyHeightDp, 0.001f)
+        assertEquals(50f, portrait.keyHeightDp, 0.001f)
         assertEquals(7f, portrait.keyGapVDp, 0.001f)
         assertEquals(26f, portrait.fontSizeSp, 0.001f)
 
@@ -524,7 +526,7 @@ class KeyboardLayoutsTest {
             prefs.copy(compactLandscape = false),
             isLandscape = true
         )
-        assertEquals(48f, disabledCompact.keyHeightDp, 0.001f)
+        assertEquals(50f, disabledCompact.keyHeightDp, 0.001f)
     }
 
     @Test
@@ -570,15 +572,15 @@ class KeyboardLayoutsTest {
     @Test
     fun computeKeyboardBodyHeightDp_matchesRectangularAndHexRowsWithZeroJump() {
         val prefs = KeyboardPreferences()
-        // С цифровым рядом: (1 цифр + 3 букв + 1 нижний) * (48 + 7) = 5 * 55 = 275 dp
-        assertEquals(275f, KeyboardLayouts.computeKeyboardBodyHeightDp(prefs, alphaRowCount = 3), 0.001f)
+        // С цифровым рядом: (1 цифр + 3 букв + 1 нижний) * (50 + 7) = 5 * 57 = 285 dp
+        assertEquals(285f, KeyboardLayouts.computeKeyboardBodyHeightDp(prefs, alphaRowCount = 3), 0.001f)
 
-        // Без цифрового ряда: (0 + 3 + 1) * (48 + 7) = 4 * 55 = 220 dp
+        // Без цифрового ряда: (0 + 3 + 1) * (50 + 7) = 4 * 57 = 228 dp
         val noNumRow = prefs.copy(showNumberRow = false)
-        assertEquals(220f, KeyboardLayouts.computeKeyboardBodyHeightDp(noNumRow, alphaRowCount = 3), 0.001f)
+        assertEquals(228f, KeyboardLayouts.computeKeyboardBodyHeightDp(noNumRow, alphaRowCount = 3), 0.001f)
 
-        // В режиме сот Hex: 48 * 3.4 + 3 (gap) + 48 (нижний ряд) = 214.2 dp
+        // В режиме сот Hex: 50 * 3.4 + 3 (gap) + 50 (нижний ряд) = 223 dp
         val hexPrefs = prefs.copy(hexagonalGrid = true)
-        assertEquals(214.2f, KeyboardLayouts.computeKeyboardBodyHeightDp(hexPrefs, alphaRowCount = 4), 0.001f)
+        assertEquals(223f, KeyboardLayouts.computeKeyboardBodyHeightDp(hexPrefs, alphaRowCount = 4), 0.001f)
     }
 }

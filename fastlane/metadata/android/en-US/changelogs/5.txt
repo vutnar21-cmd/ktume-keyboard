@@ -1,0 +1,6 @@
+- Font: the Cyrillic «т» no longer looks like «m»
+- Bigger keys and a wider space bar (hyphen: swipe left on the period)
+- Removed the affix strip and the duplicate Paste button
+- Paste no longer alters Latin text or passwords
+- Remembers the layout; caps in code fields, Backspace in empty fields
+- System haptics, no VIBRATE permission

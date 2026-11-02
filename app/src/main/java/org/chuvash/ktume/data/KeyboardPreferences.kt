@@ -11,7 +11,7 @@ package org.chuvash.ktume.data
 data class KeyboardPreferences(
     val paletteId: String = "obsidian_forest",
     val chuvashPreset: String = ChuvashLayoutPreset.BALANCED_26.id,
-    val keyHeightDp: Float = 48f,
+    val keyHeightDp: Float = 50f,
     val keyCornerRadiusDp: Float = 14f,
     /** Горизонтальный зазор между клавишами в ряду. */
     val keyGapHDp: Float = 3f,
@@ -20,7 +20,7 @@ data class KeyboardPreferences(
     val fontSizeSp: Float = 26f,
     val bottomInsetDp: Float = 20f,     // По умолчанию 20 dp (регулируется ползунком в настройках)
     val soundVolumePercent: Float = 70f,// Регулировка громкости звука клавиш (привязана к общей громкости телефона)
-    val longPressDelayMs: Int = 210,
+    val longPressDelayMs: Int = 300, // Как в Gboard: меньше случайных попапов (быстрый вариант — свайп вверх)
     val enabledLayouts: Set<String> = setOf("cv", "ru", "lat"),
     val showNumberRow: Boolean = true,
     val showSubLabels: Boolean = false, // Micro-labels отключены по умолчанию
@@ -32,7 +32,8 @@ data class KeyboardPreferences(
     val autoCapitalize: Boolean = true, // Автозаглавная на пустом поле и после точки
     val swipeUpFirstVariant: Boolean = true, // Быстрый ввод 1-го символа из Long-Press свайпом вверх
     val doubleSpaceComma: Boolean = true, // Двойной пробел ставит запятую ", "
-    val showHyphenKey: Boolean = true,    // Отдельная клавиша дефиса "-" на главной странице + свайп влево от точки
+    val showHyphenKey: Boolean = false,   // Отдельная клавиша дефиса "-" (по умолчанию выкл.: шире пробел; дефис — свайп влево от точки)
+    val showCursorArrows: Boolean = true, // Стрелки курсора ← / → в левой части верхней панели
     val experimentalCapitalizeNames: Boolean = false, // Эксперимент: автозаглавные имена собственные
     val recentEmojis: List<String> = emptyList(), // Недавно использованные смайлики (до 24 шт.)
     val customRowsByLang: Map<KeyboardLang, List<List<String>>> = mapOf(

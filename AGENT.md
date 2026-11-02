@@ -9,7 +9,7 @@ Cursor, Gemini и др.) перед изменением кода обязан �
 ## 1. О проекте
 
 - **Название:** Кӗсье Тӳме (`app_name`) / кТӳме (`ime_name`), латиницей — Kĕsje Tüme / kTüme — кастомизируемая чувашская многоязычная клавиатура для Android.
-- **Пакет и версия:** `org.chuvash.ktume`, `versionName = "1.3.0"` (`versionCode = 4`).
+- **Пакет и версия:** `org.chuvash.ktume`, `versionName = "1.4.0"` (`versionCode = 5`).
 - **Стек:** Kotlin `2.4.21` (`org.jetbrains.kotlin.plugin.compose`, built-in Kotlin AGP 9), Jetpack Compose (Material 3,
   BOM `2026.09.00`), DataStore Preferences `1.3.0`, Lifecycle `2.11.0`, Android Gradle Plugin `9.5.0`,
   Gradle `9.8.2`, JUnit `4.13.2`.
@@ -17,7 +17,8 @@ Cursor, Gemini и др.) перед изменением кода обязан �
   `fastlane/` сохранены для Google Play / RuStore. F-Droid не используется.
 - **SDK:** `minSdk = 26` (Android 8.0), `targetSdk = 37` (Android 17), `compileSdk = 37`.
 - **Приватность:** полностью локальное приложение без доступа в сеть (в `AndroidManifest.xml`
-  только разрешение `VIBRATE`), без аналитики и сторонних облачных SDK.
+  нет ни одного разрешения для пользователя; отклик клавиш — `performHapticFeedback`), без аналитики
+  и сторонних облачных SDK.
 - **Языки:** Чувашский (`cv` — Чӑвашла), Русский (`ru` — Русская), Латиница (`lat` — Latina),
   Греческий (`el` — Ελληνικά).
 
@@ -74,7 +75,10 @@ $env:JAVA_HOME = "C:/Program Files/COMSOL/COMSOL64/Multiphysics/java/win64/jre"
 ### 3.1. Пакет `ui.theme`
 
 - **`ui/theme/ThemePalettes.kt`**
-  - Локальный шрифт `Comfortaa` (`res/font/comfortaa.ttf`) через `KesjeFontFamily` / `KesjeTypography`.
+  - Локальный шрифт Kesje Rounded (`res/font/kesje_rounded.ttf`) через `KesjeFontFamily` / `KesjeTypography`:
+    это Comfortaa (OFL, Reserved Font Name — поэтому другое имя) с одной правкой — строчная «т» в русской
+    форме вместо болгарской «m». Собирается скриптом `scripts/fonts/patch_comfortaa_te.py`; Λ-образную «л»
+    и остальные буквы не трогать — это осознанный выбор владельца.
   - 7 цветовых палитр (`KesjePalettes`: 5 светлых и 2 тёмные) и конвертер `toColorScheme()` в Material 3.
 
 ### 3.2. Пакет `data`
@@ -133,7 +137,7 @@ $env:JAVA_HOME = "C:/Program Files/COMSOL/COMSOL64/Multiphysics/java/win64/jre"
   - Раскладка: `saveActiveLang` + синхронизация с системным подтипом (`switchInputMethod` на API 28+,
     `onCurrentInputMethodSubtypeChanged` с фильтром `pendingSubtypeLang` от промежуточных ответов).
   - Единый хелпер звука `playKeypressSound` (`AudioManager.FX_KEYPRESS_STANDARD` с учётом `STREAM_MUSIC`
-    и `soundVolumePercent`), кэшируемый `Vibrator`, экспериментальная капитализация имён перед пробелом.
+    и `soundVolumePercent`), тактильный отклик через `performHapticFeedback` (`KEYBOARD_TAP`, для жестов `CLOCK_TICK`), экспериментальная капитализация имён перед пробелом.
 - **`ime/KeyboardScreen.kt` и `ime/KeyboardRows.kt`**
   - `KeyboardScreen` — корневой UI-компонент клавиатуры (строго read-only по отношению к
     `KeyboardPreferences`), общий для сервиса и превью настроек; режимы `KeyboardMode`
@@ -154,7 +158,8 @@ $env:JAVA_HOME = "C:/Program Files/COMSOL/COMSOL64/Multiphysics/java/win64/jre"
     справа три кнопки (`📋`, `😊`, `⚙️`), а слева контекстно один из 3 режимов:
     1) встроенная капсула буфера обмена (по нажатию `📋`, вставка тапом);
     2) на странице смайликов (`isEmojiPage`) — 6 компактных вкладок категорий смайликов (`🕒 😊 👍 ❤️ 🌿 ☕`);
-    3) в остальных случаях — стрелки курсора `←` / `→` (с автоповтором) и кнопка `Вставить`.
+    3) в остальных случаях — стрелки курсора `←` / `→` с автоповтором (настройка `showCursorArrows`).
+    Отдельной кнопки «Вставить» нет: вставка — через `📋`.
     Вставка идёт через единую точку `pasteFromClipboard`: `normalizeChuvashUnicode`, кроме полей паролей.
     Все коллбэки внутри `pointerInput` обёрнуты в `rememberUpdatedState`.
 - **`ime/HoneycombHexGrid.kt`** — 4-рядная паркетная сотовая сетка с `clipToBounds` на каждом ряду и `onGestureTick`.
@@ -178,15 +183,16 @@ $env:JAVA_HOME = "C:/Program Files/COMSOL/COMSOL64/Multiphysics/java/win64/jre"
 
 1. **Эталонная геометрия и тема по умолчанию (`KeyboardPreferences`):**
    - Палитра (`paletteId`): **`"obsidian_forest"`** (*Ночной Лес OLED*)
-   - Высота клавиш (`keyHeightDp`): **`48f`**
+   - Высота клавиш (`keyHeightDp`): **`50f`**
    - Скругление (`keyCornerRadiusDp`): **`14f`**
    - Горизонтальный зазор (`keyGapHDp`): **`3f`**
    - Вертикальный зазор (`keyGapVDp`): **`7f`** (воздух между рядами без сжатия ширины клавиш;
      Hex-режим использует только `keyGapHDp`)
    - Шрифт (`fontSizeSp`): **`26f`**
-   - Задержка Long-Press (`longPressDelayMs`): **`210`**
+   - Задержка Long-Press (`longPressDelayMs`): **`300`** (как в Gboard)
    - Нижний отступ (`bottomInsetDp`): **`20f`**
-   - `showNumberRow` — **`true`**, `swipeUpFirstVariant` — **`true`**,
+   - `showNumberRow` — **`true`**, `swipeUpFirstVariant` — **`true`**, `showCursorArrows` — **`true`**,
+     `showHyphenKey` — **`false`** (шире пробел; дефис — свайп влево от точки),
      `showKeyPressPopup` — **`true`**, `compactLandscape` — **`true`**,
      `showSubLabels` — **`false`**, `experimentalCapitalizeNames` — **`false`**.
 2. **Чувашская раскладка по умолчанию (`BALANCED_26`):** строго `10 + 9 + 7 = 26` букв.
@@ -201,7 +207,7 @@ $env:JAVA_HOME = "C:/Program Files/COMSOL/COMSOL64/Multiphysics/java/win64/jre"
    включён по умолчанию во вкладке «Ввод») показывает мини-превью и при отпускании вставляет
    1-й по частотности вариант (`variants[0]`: `к→г`, `т→д`, `п→б`, `ш→ж`, `.→-`); возврат пальца
    вниз к клавише до отпускания отменяет свайп и вводит основную букву. Полный список вариантов —
-   Long-Press с ведением пальца; дефис — отдельная клавиша и свайп влево от точки; двойной пробел
+   Long-Press с ведением пальца; дефис — свайп влево от точки (отдельная клавиша — опция); двойной пробел
    ставит `", "` (с проверкой контекста: одиночный пробел после буквы/цифры, без выделения).
 5. **Слои символов и Numpad — по образцу Gboard:**
    - **Цифры `1–0` — общий верхний ряд** (`KeyboardLayouts.numberRow`): показывается и над
@@ -211,7 +217,8 @@ $env:JAVA_HOME = "C:/Program Files/COMSOL/COMSOL64/Multiphysics/java/win64/jre"
      (+ `=\<` слева и `⌫` справа).
    - `=\<`: `~ \` | • √ π ÷ × ¶ ∆` / `€ £ ¥ ₽ © ® ™ § № =` / `… — – ‹ › « »`.
    - `1234`: телефонная сетка 3 × 4 с колонкой `⌫ / − / + / ↵`, снизу `?123 · пробел · АБВ`.
-   - **Нижний ряд:** `?123 · , · глобус · пробел · - · . · ↵` (запятая перед глобусом).
+   - **Нижний ряд:** `?123 · , · глобус · пробел · . · ↵` (запятая перед глобусом; клавиша `-` перед
+     точкой — только при включённом `showHyphenKey`, иначе пробел шире: вес `4.2` вместо `3.4`).
      На клавише пробела — только название раскладки, без обрамляющих `‹ ›`.
 6. **Настройки — вкладками.** 5 вкладок («Раскладка», «Оформление», «Ввод», «Эксперименты»,
    «Система»): контент прокручивается, клавиатура закреплена снизу и не дублируется в тексте.
@@ -244,7 +251,7 @@ $env:JAVA_HOME = "C:/Program Files/COMSOL/COMSOL64/Multiphysics/java/win64/jre"
     ряд (`36 dp`), чтобы клавиатура не прыгала по высоте: нажатие `📋` раскрывает капсулу буфера
     в левой части **этой же строки** (`InlineClipboardCapsule`), тап по тексту сразу вставляет содержимое
     (отдельной кнопки «Вставить» внутри капсулы нет). В остальное время левую часть занимают стрелки
-    курсора `←` / `→` и быстрая кнопка `Вставить`. «Ложная латиница» (`ăĕçÿ → ӑӗҫӳ`) исправляется при
+    курсора `←` / `→` (если включены в настройках). «Ложная латиница» (`ăĕçÿ → ӑӗҫӳ`) исправляется при
     вставке **только в словах с кириллицей** и никогда — в полях паролей (`isPasswordInputType`):
     латинский текст («garçon», чувашская латиница «Çăvaş») не меняется. Системный буфер не перезаписывается.
 13. **Бесшовные хитбоксы (`gap / 2`) и контекстное поведение поля.** В прямоугольной раскладке
@@ -286,6 +293,15 @@ $env:JAVA_HOME = "C:/Program Files/COMSOL/COMSOL64/Multiphysics/java/win64/jre"
   - F-Droid больше не целевая площадка: убраны его проверки и упоминания, скриншоты перенесены в
     `fastlane/.../images/phoneScreenshots/`, добавлен `keystore.properties.example`;
   - зависимости обновлены (Compose BOM `2026.09.00`, Lifecycle `2.11.0`, DataStore `1.3.0`, Gradle `9.8.2`).
+- **Версия 1.4.0 (2026-11-02):**
+  - шрифт Kesje Rounded: Comfortaa с перерисованной строчной «т» (не путается с «м»), Λ-«л» сохранена;
+  - клавиши `50 dp` (`key_height_dp_v6`), Long-Press `300 мс` (`long_press_ms_v6`), клавиша дефиса
+    по умолчанию выключена (`show_hyphen_key_v2`) — пробел шире;
+  - кнопка «Вставить» убрана с верхней панели (дублировала `📋`), стрелки курсора — настройка
+    `showCursorArrows`;
+  - служебные клавиши в тёмных темах светлее букв; отклик клавиш через `performHapticFeedback`,
+    разрешение `VIBRATE` удалено;
+  - `PreferencesRepository` берёт значения по умолчанию из `KeyboardPreferences()`, а не из литералов.
 
 ### Открытые задачи
 
