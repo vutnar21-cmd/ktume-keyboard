@@ -11,6 +11,7 @@ import android.view.inputmethod.EditorInfo
 import android.view.inputmethod.InputConnection
 import android.view.inputmethod.InputMethodManager
 import android.view.inputmethod.InputMethodSubtype
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.platform.ComposeView
@@ -20,6 +21,9 @@ import androidx.savedstate.SavedStateRegistryController
 import androidx.savedstate.SavedStateRegistryOwner
 import androidx.savedstate.setViewTreeSavedStateRegistryOwner
 import org.chuvash.ktume.data.*
+import org.chuvash.ktume.data.autocorrect.AutocorrectEngine
+import org.chuvash.ktume.data.autocorrect.AutocorrectSession
+import org.chuvash.ktume.data.autocorrect.Autocorrector
 
 /**
  * Единое воспроизведение звука нажатия клавиши с учётом системной громкости `STREAM_MUSIC`,
@@ -51,6 +55,8 @@ internal fun playKeypressSound(audioManager: AudioManager?, prefs: KeyboardPrefe
  * - удаляет целые графемные кластеры Unicode, выделенный текст и слова (не пробивая переводы строк `\n`),
  *   а в пустых полях и полях `TYPE_NULL` отправляет `KEYCODE_DEL` / `KEYCODE_ENTER`;
  * - запоминает выбранную раскладку и синхронизирует её с системным подтипом IME;
+ * - эксперимент «автозамена»: исправляет слово перед разделителем и откатывает исправление первым `⌫`
+ *   ([AutocorrectSession], [AutocorrectEngine]);
  * - обеспечивает тактильный виброотклик, микро-тик жестов, звук нажатия и выбор системного метода ввода.
  */
 class KeskeImeService : InputMethodService(), LifecycleOwner, ViewModelStoreOwner, SavedStateRegistryOwner {
@@ -70,6 +76,9 @@ class KeskeImeService : InputMethodService(), LifecycleOwner, ViewModelStoreOwne
     }
 
     private var lastFieldSignature: String? = null
+
+    /** Автозамена в текущем поле: исправление по разделителю и откат первым `⌫` (эксперимент). */
+    private val autocorrect = AutocorrectSession()
 
     override fun onCreate() {
         super.onCreate()
@@ -93,6 +102,7 @@ class KeskeImeService : InputMethodService(), LifecycleOwner, ViewModelStoreOwne
         // через restartInput (restarting = true), поэтому учитываем и смену сигнатуры EditorInfo.
         if (!restarting || fieldChanged) {
             PreferencesState.inputSessionId.value++
+            autocorrect.reset()
         }
     }
 
@@ -104,6 +114,7 @@ class KeskeImeService : InputMethodService(), LifecycleOwner, ViewModelStoreOwne
         updateEditorContextState(info)
         if (!restarting || fieldChanged) {
             PreferencesState.inputSessionId.value++
+            autocorrect.reset()
         }
     }
 
@@ -116,6 +127,8 @@ class KeskeImeService : InputMethodService(), LifecycleOwner, ViewModelStoreOwne
         candidatesEnd: Int
     ) {
         super.onUpdateSelection(oldSelStart, oldSelEnd, newSelStart, newSelEnd, candidatesStart, candidatesEnd)
+        // Выделение текста — не продолжение набора: откат автозамены по ⌫ больше не уместен
+        if (newSelStart != newSelEnd) autocorrect.cancelPending()
         updateEditorContextState()
     }
 
@@ -202,6 +215,51 @@ class KeskeImeService : InputMethodService(), LifecycleOwner, ViewModelStoreOwne
     }
 
     /**
+     * Эксперимент «автозамена»: исправление слова перед курсором перед вводом разделителя [separator].
+     * Только в полях, которые допускают автозамену ([Autocorrector.isFieldAllowed]), и без выделения.
+     */
+    private fun findAutocorrection(ic: InputConnection, prefs: KeyboardPreferences, separator: String): Autocorrector.Correction? {
+        val inputType = currentInputEditorInfo?.inputType ?: EditorInfo.TYPE_NULL
+        if (!prefs.experimentalAutocorrect || !Autocorrector.isFieldAllowed(inputType) ||
+            !ic.getSelectedText(0).isNullOrEmpty()
+        ) {
+            autocorrect.cancelPending()
+            return null
+        }
+        val before = ic.getTextBeforeCursor(64, 0)?.toString().orEmpty()
+        return AutocorrectEngine.findCorrection(autocorrect, prefs, before, separator)
+    }
+
+    /** Заменяет набранное слово перед курсором исправлением (вызывать внутри [batchEdit]). */
+    private fun InputConnection.applyCorrection(correction: Autocorrector.Correction) {
+        deleteSurroundingText(correction.original.length, 0)
+        commitText(correction.replacement, 1)
+    }
+
+    /**
+     * Первый `⌫` сразу после автозамены возвращает набранное слово (разделитель остаётся)
+     * и, если разрешено, запоминает его в личном словаре. `true` — откат выполнен.
+     */
+    private fun revertAutocorrection(ic: InputConnection, prefs: KeyboardPreferences): Boolean {
+        if (!autocorrect.hasPendingRevert) return false
+        if (!ic.getSelectedText(0).isNullOrEmpty()) {
+            autocorrect.cancelPending()
+            return false
+        }
+        val before = ic.getTextBeforeCursor(256, 0)?.toString().orEmpty()
+        val revert = autocorrect.takeRevert(before) ?: return false
+        ic.batchEdit {
+            deleteSurroundingText(revert.committedTail.length, 0)
+            commitText(revert.original + revert.separator, 1)
+        }
+        val imeOptions = currentInputEditorInfo?.imeOptions ?: EditorInfo.IME_NULL
+        if (prefs.autocorrectLearnWords && Autocorrector.isLearningAllowed(imeOptions)) {
+            PreferencesRepository.addPersonalWord(this, revert.original)
+        }
+        return true
+    }
+
+    /**
      * Системный отклик клавиатуры: учитывает настройки телефона (вибрация клавиатуры, сила отклика)
      * и не требует разрешения `VIBRATE`.
      */
@@ -248,6 +306,11 @@ class KeskeImeService : InputMethodService(), LifecycleOwner, ViewModelStoreOwne
             val isPasswordField by PreferencesState.isPasswordField.collectAsState()
             val activeLang by PreferencesState.activeLang.collectAsState()
 
+            // Словари автозамены грузятся в фоне, только когда эксперимент включён
+            LaunchedEffect(prefs.experimentalAutocorrect, prefs.autocorrectLangs) {
+                AutocorrectEngine.sync(this@KeskeImeService, prefs)
+            }
+
             KeyboardScreen(
                 prefs = prefs,
                 shouldAutoCapitalize = shouldAutoCapitalize,
@@ -258,23 +321,29 @@ class KeskeImeService : InputMethodService(), LifecycleOwner, ViewModelStoreOwne
                 isPasswordField = isPasswordField,
                 activeLang = activeLang,
                 onLangChange = { lang ->
+                    autocorrect.cancelPending()
                     PreferencesRepository.saveActiveLang(this, lang)
                     syncSystemSubtype(lang)
                 },
                 onCommitText = { text ->
                     triggerFeedback(prefs)
                     val ic = currentInputConnection
-                    if (ic != null && text == " " && prefs.experimentalCapitalizeNames) {
+                    val correction = ic?.let { findAutocorrection(it, prefs, text) }
+                    val capitalizeName = text == " " && prefs.experimentalCapitalizeNames
+                    if (ic != null && (correction != null || capitalizeName)) {
                         ic.batchEdit {
-                            capitalizeNameBeforeCursor(this)
+                            if (correction != null) applyCorrection(correction)
+                            if (capitalizeName) capitalizeNameBeforeCursor(this)
                             commitText(text, 1)
                         }
+                        if (correction != null) autocorrect.onCorrectionApplied(correction, text)
                     } else {
                         ic?.commitText(text, 1)
                     }
                     updateEditorContextState()
                 },
                 onReplaceSpaceWithComma = {
+                    autocorrect.cancelPending()
                     val ic = currentInputConnection ?: return@KeyboardScreen false
                     val selected = ic.getSelectedText(0)
                     val before = ic.getTextBeforeCursor(4, 0)?.toString().orEmpty()
@@ -293,6 +362,10 @@ class KeskeImeService : InputMethodService(), LifecycleOwner, ViewModelStoreOwne
                 onBackspace = {
                     triggerFeedback(prefs)
                     val ic = currentInputConnection ?: return@KeyboardScreen
+                    if (revertAutocorrection(ic, prefs)) {
+                        updateEditorContextState()
+                        return@KeyboardScreen
+                    }
                     val selected = ic.getSelectedText(0)
                     val before = ic.getTextBeforeCursor(16, 0)?.toString()
                     when {
@@ -308,6 +381,7 @@ class KeskeImeService : InputMethodService(), LifecycleOwner, ViewModelStoreOwne
                 },
                 onDeleteWord = {
                     triggerFeedback(prefs)
+                    autocorrect.cancelPending()
                     val ic = currentInputConnection ?: return@KeyboardScreen
                     val selected = ic.getSelectedText(0)
                     val before = ic.getTextBeforeCursor(64, 0)?.toString()
@@ -327,7 +401,9 @@ class KeskeImeService : InputMethodService(), LifecycleOwner, ViewModelStoreOwne
                     triggerFeedback(prefs)
                     val ic = currentInputConnection ?: return@KeyboardScreen
                     val imeOptions = currentInputEditorInfo?.imeOptions ?: EditorInfo.IME_NULL
-                    when (KeyboardLayouts.resolveEnterKeyAction(imeOptions)) {
+                    val action = KeyboardLayouts.resolveEnterKeyAction(imeOptions)
+                    if (action != EnterKeyAction.NEWLINE || isRawKeyEditor()) autocorrect.cancelPending()
+                    when (action) {
                         EnterKeyAction.SEARCH -> ic.performEditorAction(EditorInfo.IME_ACTION_SEARCH)
                         EnterKeyAction.SEND -> ic.performEditorAction(EditorInfo.IME_ACTION_SEND)
                         EnterKeyAction.GO -> ic.performEditorAction(EditorInfo.IME_ACTION_GO)
@@ -336,12 +412,23 @@ class KeskeImeService : InputMethodService(), LifecycleOwner, ViewModelStoreOwne
                         EnterKeyAction.NEWLINE -> if (isRawKeyEditor()) {
                             sendDownUpKeyEvents(KeyEvent.KEYCODE_ENTER)
                         } else {
-                            ic.commitText("\n", 1)
+                            // Перевод строки — тоже разделитель: слово перед ним проверяется автозаменой
+                            val correction = findAutocorrection(ic, prefs, "\n")
+                            if (correction != null) {
+                                ic.batchEdit {
+                                    applyCorrection(correction)
+                                    commitText("\n", 1)
+                                }
+                                autocorrect.onCorrectionApplied(correction, "\n")
+                            } else {
+                                ic.commitText("\n", 1)
+                            }
                         }
                     }
                     updateEditorContextState()
                 },
                 onMoveCursor = { delta ->
+                    autocorrect.cancelPending()
                     if (currentInputConnection == null) return@KeyboardScreen
                     sendDownUpKeyEvents(if (delta > 0) KeyEvent.KEYCODE_DPAD_RIGHT else KeyEvent.KEYCODE_DPAD_LEFT)
                     updateEditorContextState()

@@ -67,6 +67,13 @@
    не вызывает ввод. Щелчок клавиш учитывает `STREAM_MUSIC` и ползунок `soundVolumePercent`.
 8. **Экран настроек с 5 вкладками.** «Раскладка», «Оформление», «Ввод», «Эксперименты», «Система»;
    тестовое поле и единственный экземпляр клавиатуры всегда закреплены снизу для живой проверки.
+9. **Автозамена опечаток (эксперимент, выключена по умолчанию).** На вкладке «Эксперименты»: слово с
+   опечаткой исправляется по встроенным частотным словарям (чувашский и русский, по ~160 тыс. словоформ)
+   при вводе пробела, знака препинания или переноса строки («превет» → «привет», «сак» → «ҫак»); первый
+   `⌫` сразу после исправления возвращает набранное слово. Слова из любого словаря не трогаются, поэтому
+   чувашские слова не превращаются в русские; пароли, адреса, e-mail и аббревиатуры не исправляются.
+   Личный словарь «Запоминать отменённые слова» хранится только на телефоне, его можно просмотреть и
+   очистить. Ленты подсказок нет — только исправление.
 
 ### Значения по умолчанию
 
@@ -85,6 +92,7 @@
 | Всплывающая «капля» / компактный альбомный режим | включены |
 | Микро-метки в углах клавиш | выключены |
 | Автозаглавные имена (эксперимент) | выключены |
+| Автозамена опечаток (эксперимент) | выключена |
 
 ---
 
@@ -101,6 +109,7 @@ ktume-keyboard/
 ├── release.bat                       # Запуск локальной автоматизации релиза (обёртка над scripts/release.ps1)
 ├── scripts/release.ps1               # Автосборка, проверка подписи, тег и публикация в GitHub Releases
 ├── scripts/fonts/                    # Сборка шрифта Keske Rounded из Comfortaa (русская «т»)
+├── scripts/dictionaries/             # Сборка словарей автозамены assets/dict/cv.tsv и ru.tsv
 ├── docs/                             # SVG-кнопки скачивания, QR-код и материалы по названию приложения
 ├── fastlane/metadata/android/        # Карточка для магазинов: описания, иконка, скриншоты, changelogs/<versionCode>.txt
 ├── tasks/                            # Каталог задач на развитие и индекс статусов (tasks/README.md)
@@ -109,6 +118,7 @@ ktume-keyboard/
     └── src/
         ├── main/
         │   ├── AndroidManifest.xml   # SettingsActivity (LAUNCHER) + KeskeImeService (BIND_INPUT_METHOD)
+        │   ├── assets/dict/          # частотные словари автозамены cv.tsv (CC0) и ru.tsv (CC BY-SA 4.0)
         │   ├── res/
         │   │   ├── font/keske_rounded.ttf  # Comfortaa с русской «т» (scripts/fonts/patch_comfortaa_te.py)
         │   │   ├── values/strings.xml    # app_name, ime_name, названия подтипов
@@ -117,6 +127,8 @@ ktume-keyboard/
         │       ├── ui/theme/
         │       │   └── ThemePalettes.kt        # шрифт Keske Rounded, 7 палитр и Material 3 ColorScheme
         │       ├── data/
+        │       │   ├── autocorrect/            # экспериментальная автозамена: WordTrie, TypoCostModel,
+        │       │   │                           # Autocorrector, AutocorrectSession, AutocorrectEngine
         │       │   ├── ChuvashNames.kt         # базовый словарь имён собственных
         │       │   ├── EditorTextLogic.kt      # Unicode-графемы, автозаглавная, контекст поля, геометрия
         │       │   ├── EmojiCatalog.kt         # локальный каталог эмодзи по 6 категориям
@@ -134,6 +146,7 @@ ktume-keyboard/
         │           ├── Keys.kt                 # поверхность клавиш (Rect/Hex), KeyButton и попапы
         │           ├── NumpadGridView.kt       # телефонная панель 3 × 4
         │           ├── SettingsActivity.kt     # каркас экрана настроек с 5 вкладками
+        │           ├── SettingsAutocorrect.kt  # блок автозамены и личного словаря («Эксперименты»)
         │           ├── SettingsComponents.kt   # карточки секций, превью палитр, тумблеры, ползунки
         │           ├── SettingsPreviewBench.kt # живое тестовое поле и закреплённый стенд клавиатуры
         │           ├── SettingsRowEditor.kt    # интерактивный конструктор рядов раскладки
@@ -141,6 +154,8 @@ ktume-keyboard/
         │           └── Toolbar.kt              # однорядная верхняя полоса (36 dp): правка / буфер / вкладки эмодзи
         └── test/java/org/chuvash/ktume/
             ├── data/ChuvashNamesTest.kt
+            ├── data/autocorrect/AutocorrectorTest.kt
+            ├── data/autocorrect/AutocorrectDictionaryTest.kt
             └── ime/KeyboardLayoutsTest.kt
 ```
 
@@ -151,11 +166,11 @@ ktume-keyboard/
 - **`data`** — чистые данные, текстовые алгоритмы и хранение без зависимости от Android IME:
   `KeyboardPreferences`, `PreferencesState` / `PreferencesRepository` (DataStore с версионированными
   ключами и гейтом загрузки `loaded`), `KeyboardLayouts`, `EditorTextLogic`, `EmojiCatalog`,
-  словарь имён (`ChuvashNames`).
+  словарь имён (`ChuvashNames`), экспериментальная автозамена (`data/autocorrect/`).
 - **`ime`** — сервис клавиатуры `KeskeImeService`, модульный Compose-интерфейс клавиатуры
   (`KeyboardScreen`, `KeyboardRows`, `Keys`, `FunctionalKeys`, `Toolbar`, `HoneycombHexGrid`,
   `NumpadGridView`, `EmojiPickerPage`, `KeskeIcons`) и студия кастомизации (`SettingsActivity`,
-  `SettingsSections`, `SettingsPreviewBench`, `SettingsComponents`, `SettingsRowEditor`).
+  `SettingsSections`, `SettingsPreviewBench`, `SettingsComponents`, `SettingsRowEditor`, `SettingsAutocorrect`).
 
 ---
 
@@ -201,7 +216,7 @@ export JAVA_HOME="C:/Program Files/COMSOL/COMSOL64/Multiphysics/java/win64/jre"
 `kotlin.incremental=false` сохранён намеренно для предотвращения `java.rmi.UnmarshalException`
 в Kotlin-демоне на Windows при наличии пробелов в путях.
 
-### Тесты (28 unit-тестов)
+### Тесты (50 unit-тестов)
 
 - **`KeyboardLayoutsTest`** (23 теста): сохранность всех клавиш в Hex для каждого языка и пресета,
   выбор вариантов Long-Press на всей правой половине справа налево с сохранением частотности и
@@ -218,6 +233,12 @@ export JAVA_HOME="C:/Program Files/COMSOL/COMSOL64/Multiphysics/java/win64/jre"
   эталонные значения `KeyboardPreferences`.
 - **`ChuvashNamesTest`** (5 тестов): капитализация имён со строчной буквы и игнорирование обычных
   слов и уже капитализированных имён.
+- **`AutocorrectorTest`** (15 тестов): префиксное дерево и поиск со всеми видами правок, дешёвые соседние
+  клавиши и надстрочные знаки, регистр, защита известных и личных слов, порог выгоды над гипотезой
+  редкого слова (`minGain`), пропуск коротких, заглавных и иноязычных слов, фильтр обсценной лексики,
+  политика полей по образцу AOSP, откат `⌫`.
+- **`AutocorrectDictionaryTest`** (7 тестов): исправление типичных опечаток на реальных словарях `cv.tsv` /
+  `ru.tsv`, частые слова не трогаются, бюджет времени поиска, отчёт о ложных исправлениях и калибровка порогов.
 
 ---
 
@@ -236,6 +257,8 @@ export JAVA_HOME="C:/Program Files/COMSOL/COMSOL64/Multiphysics/java/win64/jre"
 - **Полировка сот и техдолг** ([`001`](tasks/001-hex-polish.md), [`007`](tasks/007-code-cleanup.md),
   [`009`](tasks/009-tech-debt-review.md)): проверка `HoneycombHexGrid` на разных экранах, удаление
   остатков мёртвого кода и мелкие UX-исправления по итогам код-ревью.
+- **Автозамена опечаток** ([`013`](tasks/013-microdictionary.md)): эксперимент для чувашского и русского;
+  проверка на устройстве и подбор порогов, вопрос о ленте подсказок отложен.
 
 ---
 
@@ -245,5 +268,9 @@ export JAVA_HOME="C:/Program Files/COMSOL/COMSOL64/Multiphysics/java/win64/jre"
 - **Шрифт и сторонние библиотеки:** шрифт Keske Rounded (`app/src/main/res/font/keske_rounded.ttf`) —
   изменённая версия Comfortaa (перерисована строчная «т»); распространяется под свободной лицензией **SIL Open Font License 1.1** (`OFL-1.1`); подробности —
   в [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
+- **Словари автозамены:** `app/src/main/assets/dict/cv.tsv` — из корпуса `alexantonov/chuvash_mono`
+  (`CC0-1.0`); `app/src/main/assets/dict/ru.tsv` — из `hermitdave/FrequencyWords` (OpenSubtitles 2018),
+  распространяется под **CC BY-SA 4.0** (лицензия относится только к этому файлу, код остаётся Apache-2.0);
+  подробности — в [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
 - **Политика конфиденциальности:** [PRIVACY_POLICY.md](PRIVACY_POLICY.md) (приложение работает на 100 %
   офлайн и не запрашивает разрешение `INTERNET`).

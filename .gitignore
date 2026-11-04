@@ -34,3 +34,6 @@ keystore.properties
 .DS_Store
 Thumbs.db
 Desktop.ini
+
+# Кэш исходников словарей автозамены (scripts/dictionaries/build_dictionaries.py)
+scripts/dictionaries/.cache/

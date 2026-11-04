@@ -35,6 +35,9 @@ data class KeyboardPreferences(
     val showHyphenKey: Boolean = false,   // Отдельная клавиша дефиса "-" (по умолчанию выкл.: шире пробел; дефис — свайп влево от точки)
     val showCursorArrows: Boolean = true, // Стрелки курсора ← / → в левой части верхней панели
     val experimentalCapitalizeNames: Boolean = false, // Эксперимент: автозаглавные имена собственные
+    val experimentalAutocorrect: Boolean = false, // Эксперимент: автозамена опечаток по пробелу (задача 013)
+    val autocorrectLangs: Set<String> = setOf("cv", "ru"), // Словари автозамены (коды KeyboardLang)
+    val autocorrectLearnWords: Boolean = true, // Слово, возвращённое через ⌫ после автозамены, — в личный словарь
     val recentEmojis: List<String> = emptyList(), // Недавно использованные смайлики (до 24 шт.)
     val customRowsByLang: Map<KeyboardLang, List<List<String>>> = mapOf(
         KeyboardLang.CHUVASH to KeyboardLayouts.getDefaultRows(KeyboardLang.CHUVASH, ChuvashLayoutPreset.BALANCED_26),
