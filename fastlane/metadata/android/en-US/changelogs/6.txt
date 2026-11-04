@@ -1,0 +1,5 @@
+- Experimental autocorrect for Chuvash and Russian (160k words each) with single-tap Backspace undo
+- On-device personal dictionary for reverted words
+- Chuvash layout: «э» is now the #1 swipe-up and long-press variant on «е»
+- Honeycomb (Hex) mode and row editor moved to the Experiments tab
+- Fixed variant selection when dragging in the long-press popup

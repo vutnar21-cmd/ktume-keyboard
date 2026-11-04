@@ -4,7 +4,7 @@
 чувашский (`Чӑвашла`), русский, латиница (`Latina`) и греческий. Приложение работает полностью
 локально (без доступа в интернет, аналитики и облачных сервисов).
 
-- Пакет: `org.chuvash.ktume` (`v1.4.0`, `versionCode = 5`)
+- Пакет: `org.chuvash.ktume` (`v1.5.0`, `versionCode = 6`)
 - Репозиторий: https://github.com/vutnar21-cmd/ktume-keyboard
 - `minSdk = 26` (Android 8.0), `targetSdk = 37` (Android 17), `compileSdk = 37`
 - Kotlin `2.4.21`, AGP `9.5.0`, Gradle `9.8.2`, Jetpack Compose (Material 3, BOM `2026.09.00`), DataStore `1.3.0`

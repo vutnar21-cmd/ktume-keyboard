@@ -9,7 +9,7 @@ Cursor, Gemini и др.) перед изменением кода обязан �
 ## 1. О проекте
 
 - **Название:** Кӗсье Тӳме (`app_name`) / кТӳме (`ime_name`), латиницей — Kĕsje Tüme / kTüme — кастомизируемая чувашская многоязычная клавиатура для Android.
-- **Пакет и версия:** `org.chuvash.ktume`, `versionName = "1.4.0"` (`versionCode = 5`).
+- **Пакет и версия:** `org.chuvash.ktume`, `versionName = "1.5.0"` (`versionCode = 6`).
 - **Стек:** Kotlin `2.4.21` (`org.jetbrains.kotlin.plugin.compose`, built-in Kotlin AGP 9), Jetpack Compose (Material 3,
   BOM `2026.09.00`), DataStore Preferences `1.3.0`, Lifecycle `2.11.0`, Android Gradle Plugin `9.5.0`,
   Gradle `9.8.2`, JUnit `4.13.2`.
