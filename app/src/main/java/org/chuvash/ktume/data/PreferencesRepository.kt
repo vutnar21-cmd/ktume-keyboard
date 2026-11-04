@@ -51,6 +51,9 @@ object PreferencesState {
 
     /** true, если текущее поле ввода числовое или телефонное (автоматически открывает Numpad 1234). */
     val preferNumericMode = MutableStateFlow(false)
+
+    /** Личный словарь автозамены (нижний регистр): эти слова никогда не исправляются. Только на устройстве. */
+    val personalWords = MutableStateFlow<Set<String>>(emptySet())
 }
 
 private val Context.kesjeDataStore by preferencesDataStore(name = "kesje_keyboard_prefs_v3")
@@ -100,6 +103,11 @@ object PreferencesRepository {
     private val KEY_SHOW_HYPHEN = booleanPreferencesKey("show_hyphen_key_v2")
     private val KEY_CURSOR_ARROWS = booleanPreferencesKey("show_cursor_arrows_v1")
     private val KEY_EXP_CAP_NAMES = booleanPreferencesKey("exp_capitalize_names_v1")
+    private val KEY_EXP_AUTOCORRECT = booleanPreferencesKey("exp_autocorrect_v1")
+    private val KEY_AUTOCORRECT_LANGS = stringSetPreferencesKey("autocorrect_langs_v1")
+    private val KEY_AUTOCORRECT_LEARN = booleanPreferencesKey("autocorrect_learn_v1")
+    /** Личный словарь автозамены: пишется отдельно от [update] и не сбрасывается кнопкой «Сбросить». */
+    private val KEY_PERSONAL_WORDS = stringSetPreferencesKey("personal_words_v1")
     private val KEY_RECENT_EMOJIS = stringPreferencesKey("recent_emojis_v1")
     /** Пишется отдельно от [update]: переключение языка не перезаписывает остальные настройки. */
     private val KEY_ACTIVE_LANG = stringPreferencesKey("active_lang_v1")
@@ -141,6 +149,9 @@ object PreferencesRepository {
                 if (savedLang != null && PreferencesState.activeLang.value == null) {
                     PreferencesState.activeLang.value = savedLang
                 }
+                p[KEY_PERSONAL_WORDS]?.let { saved ->
+                    PreferencesState.personalWords.value = saved + PreferencesState.personalWords.value
+                }
                 if (hasPendingUserUpdate) return@launch
                 val presetId = p[KEY_CV_PRESET] ?: ChuvashLayoutPreset.BALANCED_26.id
                 val preset = ChuvashLayoutPreset.entries.find { it.id == presetId } ?: ChuvashLayoutPreset.BALANCED_26
@@ -178,6 +189,9 @@ object PreferencesRepository {
                     showHyphenKey = p[KEY_SHOW_HYPHEN] ?: defaults.showHyphenKey,
                     showCursorArrows = p[KEY_CURSOR_ARROWS] ?: defaults.showCursorArrows,
                     experimentalCapitalizeNames = p[KEY_EXP_CAP_NAMES] ?: defaults.experimentalCapitalizeNames,
+                    experimentalAutocorrect = p[KEY_EXP_AUTOCORRECT] ?: defaults.experimentalAutocorrect,
+                    autocorrectLangs = p[KEY_AUTOCORRECT_LANGS] ?: defaults.autocorrectLangs,
+                    autocorrectLearnWords = p[KEY_AUTOCORRECT_LEARN] ?: defaults.autocorrectLearnWords,
                     recentEmojis = deserializeRecentEmojis(p[KEY_RECENT_EMOJIS]),
                     customRowsByLang = customMap
                 )
@@ -206,6 +220,37 @@ object PreferencesRepository {
                 appCtx.kesjeDataStore.edit { p -> p[KEY_ACTIVE_LANG] = lang.code }
             } catch (e: Exception) {
                 Log.w(TAG, "Не удалось сохранить выбранную раскладку", e)
+            }
+        }
+    }
+
+    /** Добавляет слово (в нижнем регистре) в личный словарь автозамены. */
+    fun addPersonalWord(context: Context, word: String) {
+        val lower = word.trim().lowercase()
+        if (lower.isEmpty() || lower in PreferencesState.personalWords.value) return
+        PreferencesState.personalWords.value = PreferencesState.personalWords.value + lower
+        editPersonalWords(context) { it + lower }
+    }
+
+    fun removePersonalWord(context: Context, word: String) {
+        PreferencesState.personalWords.value = PreferencesState.personalWords.value - word
+        editPersonalWords(context) { it - word }
+    }
+
+    fun clearPersonalWords(context: Context) {
+        PreferencesState.personalWords.value = emptySet()
+        editPersonalWords(context) { emptySet() }
+    }
+
+    private fun editPersonalWords(context: Context, transform: (Set<String>) -> Set<String>) {
+        val appCtx = context.applicationContext
+        scope.launch {
+            try {
+                appCtx.kesjeDataStore.edit { p ->
+                    p[KEY_PERSONAL_WORDS] = transform(p[KEY_PERSONAL_WORDS] ?: emptySet())
+                }
+            } catch (e: Exception) {
+                Log.w(TAG, "Не удалось сохранить личный словарь", e)
             }
         }
     }
@@ -255,6 +300,9 @@ object PreferencesRepository {
                         p[KEY_SHOW_HYPHEN] = latest.showHyphenKey
                         p[KEY_CURSOR_ARROWS] = latest.showCursorArrows
                         p[KEY_EXP_CAP_NAMES] = latest.experimentalCapitalizeNames
+                        p[KEY_EXP_AUTOCORRECT] = latest.experimentalAutocorrect
+                        p[KEY_AUTOCORRECT_LANGS] = latest.autocorrectLangs
+                        p[KEY_AUTOCORRECT_LEARN] = latest.autocorrectLearnWords
                         p[KEY_RECENT_EMOJIS] = serializeRecentEmojis(latest.recentEmojis)
                         latest.customRowsByLang.forEach { (lang, rows) ->
                             p[rowsKey(lang)] = serializeRows(rows)

@@ -59,9 +59,16 @@ $env:JAVA_HOME = "C:/Program Files/COMSOL/COMSOL64/Multiphysics/java/win64/jre"
     и слов без разрыва суррогатных пар, слово перед курсором, двойной пробел, пустая строка и правила
     автозаглавной Gboard, «ложная латиница» при вставке, поля паролей, подтипы IME, контекстный `Enter`,
     авто-Numpad, альбомная геометрия, слои символов и дефолты;
-  - `data/ChuvashNamesTest.kt` — экспериментальная капитализация имён собственных.
-  Любая правка раскладок, слоёв символов, пресетов, Numpad, автозаглавной или значений по умолчанию
-  должна сопровождаться тестом (или обновлением существующего).
+  - `data/ChuvashNamesTest.kt` — экспериментальная капитализация имён собственных;
+  - `data/autocorrect/AutocorrectorTest.kt` — экспериментальная автозамена: поиск кандидатов в
+    `WordTrie`, цены правок `TypoCostModel`, правила регистра, полей и токенов, защита известных слов,
+    откат `⌫` (`AutocorrectSession`);
+  - `data/autocorrect/AutocorrectDictionaryTest.kt` — автозамена на реальных словарях `assets/dict/*.tsv`:
+    типичные опечатки исправляются, частые чувашские и русские слова не трогаются, поиск укладывается
+    в бюджет времени, отчёт о ложных исправлениях на редких формах (выборка из `scripts/dictionaries/.cache/`,
+    если она есть).
+  Любая правка раскладок, слоёв символов, пресетов, Numpad, автозаглавной, автозамены или значений по
+  умолчанию должна сопровождаться тестом (или обновлением существующего).
 
 ---
 
@@ -122,6 +129,24 @@ $env:JAVA_HOME = "C:/Program Files/COMSOL/COMSOL64/Multiphysics/java/win64/jre"
   - `EmojiCategory` и локальный каталог смайликов `EmojiCatalog.categories` по 6 категориям.
 - **`data/ChuvashNames.kt`**
   - Базовый словарь имён собственных (~95) и `capitalizeIfName` для экспериментальной автозаглавной.
+- **`data/autocorrect/`** — экспериментальная автозамена опечаток (задача 013), чистая логика без UI:
+  - `WordTrie.kt` — компактное префиксное дерево в плоских массивах (`fromTsv`), поиск кандидатов со
+    взвешенным расстоянием Дамерау–Левенштейна и отсечением ветвей по допустимой цене.
+  - `TypoCostModel.kt` — цены правок: обычная `FULL = 2`, «дешёвая» `CHEAP = 1` — соседняя клавиша
+    текущей раскладки (`fromRows`), пропущенный надстрочный знак (`а/ӑ`, `е/ӗ/ё/э`, `с/ҫ`, `у/ӳ`, `и/й`,
+    `ь/ъ/ы`, `ш/щ`), сдвоенная или потерянная двойная буква; надбавка за правку первой буквы
+    (`firstLetterExtra = 1`).
+  - `Autocorrector.kt` — решение «исправлять ли и на что»: правила слова и регистра, допустимая цена по
+    длине (`maxCostFor`), оценка `ln(частота / всего) − 2,3 · цена` + бонус словарю раскладки
+    (`ln(10)`), пороги выгоды над гипотезой редкого слова (`minGain = 2,0`) и разрыва между кандидатами
+    (`minMargin = 1,5`), фильтр обсценной лексики; политика полей `isFieldAllowed`, `isLearningAllowed`,
+    разделители `isSeparator`, `extractCorrectableWord`.
+  - `AutocorrectSession.kt` — состояние одного поля: ожидающий откат первым `⌫` и отклонённые слова.
+  - `AutocorrectEngine.kt` — фоновая загрузка `assets/dict/cv.tsv` / `ru.tsv` только при включённом
+    эксперименте (`sync`), выгрузка при выключении, единая точка `findCorrection` для сервиса и
+    тестового поля настроек.
+  - Словари `app/src/main/assets/dict/*.tsv` собираются скриптом `scripts/dictionaries/build_dictionaries.py`
+    (нужны `pyarrow` и `spylls`; кэш исходников `scripts/dictionaries/.cache/` в `.gitignore`).
 
 ### 3.3. Пакет `ime`
 
@@ -138,6 +163,10 @@ $env:JAVA_HOME = "C:/Program Files/COMSOL/COMSOL64/Multiphysics/java/win64/jre"
     `onCurrentInputMethodSubtypeChanged` с фильтром `pendingSubtypeLang` от промежуточных ответов).
   - Единый хелпер звука `playKeypressSound` (`AudioManager.FX_KEYPRESS_STANDARD` с учётом `STREAM_MUSIC`
     и `soundVolumePercent`), тактильный отклик через `performHapticFeedback` (`KEYBOARD_TAP`, для жестов `CLOCK_TICK`), экспериментальная капитализация имён перед пробелом.
+  - Экспериментальная автозамена (`AutocorrectSession` + `AutocorrectEngine`): исправление слова перед
+    разделителем в `onCommitText` и перед переводом строки в `onEnter` (одной batch-правкой), откат
+    первым `⌫` в `onBackspace` с пополнением личного словаря (если включено и поле не в инкогнито);
+    сброс состояния при смене поля и выделении текста.
 - **`ime/KeyboardScreen.kt` и `ime/KeyboardRows.kt`**
   - `KeyboardScreen` — корневой UI-компонент клавиатуры (строго read-only по отношению к
     `KeyboardPreferences`), общий для сервиса и превью настроек; режимы `KeyboardMode`
@@ -171,10 +200,13 @@ $env:JAVA_HOME = "C:/Program Files/COMSOL/COMSOL64/Multiphysics/java/win64/jre"
 - **`ime/KesjeIcons.kt`**
   - Векторные иконки на `Canvas` вместо текстовых символов.
   - **Важно:** в Compose `Path` используй `quadraticTo(...)`, а не устаревший `quadraticBezierTo(...)`.
-- **`ime/SettingsActivity.kt`, `ime/SettingsSections.kt`, `ime/SettingsPreviewBench.kt`, `ime/SettingsComponents.kt`, `ime/SettingsRowEditor.kt`**
+- **`ime/SettingsActivity.kt`, `ime/SettingsSections.kt`, `ime/SettingsPreviewBench.kt`, `ime/SettingsComponents.kt`, `ime/SettingsRowEditor.kt`, `ime/SettingsAutocorrect.kt`**
   - `SettingsActivity` — каркас студии настроек (шапка с переключателем темы, вкладки, прокрутка, диалог сброса).
   - `SettingsSections` — `SettingsTab` и 5 секций («Раскладка», «Оформление», «Ввод», «Эксперименты», «Система»).
-  - `SettingsPreviewBench` — живое тестовое поле `SettingsTestFieldCard` и закреплённый снизу стенд `SettingsKeyboardPreview`.
+  - `SettingsPreviewBench` — живое тестовое поле `SettingsTestFieldCard` (с автозаменой и откатом `⌫`,
+    когда эксперимент включён) и закреплённый снизу стенд `SettingsKeyboardPreview`.
+  - `SettingsAutocorrect` — блок `AutocorrectSettingsBlock` на вкладке «Эксперименты»: тумблер автозамены,
+    языки словарей, «Запоминать отменённые слова», список слов личного словаря с удалением и очистка.
   - `SettingsComponents` и `SettingsRowEditor` — переиспользуемые карточки/тумблеры/ползунки и интерактивный конструктор рядов.
 
 ---
@@ -194,7 +226,8 @@ $env:JAVA_HOME = "C:/Program Files/COMSOL/COMSOL64/Multiphysics/java/win64/jre"
    - `showNumberRow` — **`true`**, `swipeUpFirstVariant` — **`true`**, `showCursorArrows` — **`true`**,
      `showHyphenKey` — **`false`** (шире пробел; дефис — свайп влево от точки),
      `showKeyPressPopup` — **`true`**, `compactLandscape` — **`true`**,
-     `showSubLabels` — **`false`**, `experimentalCapitalizeNames` — **`false`**.
+     `showSubLabels` — **`false`**, `experimentalCapitalizeNames` — **`false`**,
+     `experimentalAutocorrect` — **`false`**.
 2. **Чувашская раскладка по умолчанию (`BALANCED_26`):** строго `10 + 9 + 7 = 26` букв.
    - Ряд 1 (10): `й, ӑ, у, к, е, н, ӗ, ш, х, ӳ`
    - Ряд 2 (9): `ф, ы, в, а, п, р, о, л, ҫ`
@@ -265,6 +298,25 @@ $env:JAVA_HOME = "C:/Program Files/COMSOL/COMSOL64/Multiphysics/java/win64/jre"
     как `KEYCODE_DEL`, а перевод строки в `TYPE_NULL` — как `KEYCODE_ENTER`: ячейки SMS-кода, «чипы»
     получателей и консоли понимают только нажатия клавиш. Выбранная раскладка хранится в
     `PreferencesState.activeLang` (ключ `active_lang_v1`) и переживает поворот экрана и перезапуск.
+15. **Автозамена (эксперимент, задача 013).** Выключена по умолчанию (`experimentalAutocorrect = false`,
+    ключ `exp_autocorrect_v1`), живёт на вкладке «Эксперименты»; ленты подсказок нет (см. инвариант № 3).
+    - Слово, найденное в **любом** подключённом словаре (чувашском, русском) или в личном словаре,
+      не исправляется — так чувашские слова не превращаются в русские. ВСЕ ЗАГЛАВНЫЕ, смешанный регистр,
+      слова короче 3 букв и токены с цифрами, латиницей, `@ # /` и т. п. не трогаются.
+    - Поля — по правилу AOSP LatinIME (`Autocorrector.isFieldAllowed`): только `TYPE_CLASS_TEXT`, не пароль,
+      URI, e-mail или фильтр, без `TYPE_TEXT_FLAG_NO_SUGGESTIONS`; однострочное поле — только с
+      `TYPE_TEXT_FLAG_AUTO_CORRECT`.
+    - Исправление — только по разделителю (пробел, `. , ! ? ; : ) » "`, `Enter` в многострочных полях).
+      **Первый `⌫` сразу после исправления** возвращает набранное слово (разделитель остаётся), и в этом
+      поле оно больше не исправляется.
+    - Личный словарь (`personal_words_v1`, `PreferencesState.personalWords`) хранится **только на
+      устройстве**, не пополняется при `IME_FLAG_NO_PERSONALIZED_LEARNING` (инкогнито) и не сбрасывается
+      кнопкой «Сбросить все настройки».
+    - Словари `assets/dict/cv.tsv` и `ru.tsv` **не редактировать руками** — только пересборкой скриптом
+      `scripts/dictionaries/build_dictionaries.py` (в шапке файла — источник, лицензия и контрольные суммы).
+      `ru.tsv` распространяется под CC BY-SA 4.0 — атрибуция в `THIRD_PARTY_NOTICES.md`.
+    - Словари грузятся в фоне только при включённом эксперименте и выгружаются при выключении; пока
+      словарь не загружен, автозамена просто не срабатывает.
 
 ---
 
@@ -302,6 +354,14 @@ $env:JAVA_HOME = "C:/Program Files/COMSOL/COMSOL64/Multiphysics/java/win64/jre"
   - служебные клавиши в тёмных темах светлее букв; отклик клавиш через `performHapticFeedback`,
     разрешение `VIBRATE` удалено;
   - `PreferencesRepository` берёт значения по умолчанию из `KeyboardPreferences()`, а не из литералов.
+- **Автозамена (эксперимент, ветка `feature/013-autocorrect`, 2026-11-04):**
+  - пакет `data/autocorrect/` (`WordTrie`, `TypoCostModel`, `Autocorrector`, `AutocorrectSession`,
+    `AutocorrectEngine`) и блок настроек `SettingsAutocorrect` на вкладке «Эксперименты», выключено по умолчанию;
+  - исправление по разделителю и `Enter` с откатом первым `⌫`, языки `cv` и `ru` с выбором в настройках;
+  - личный словарь «Запоминать отменённые слова» (`personal_words_v1`) с просмотром, удалением и очисткой;
+  - встроенные словари по 160 000 словоформ: `cv.tsv` из корпуса `alexantonov/chuvash_mono` (CC0-1.0),
+    `ru.tsv` из `hermitdave/FrequencyWords` (OpenSubtitles 2018, CC BY-SA 4.0); скрипт сборки
+    `scripts/dictionaries/build_dictionaries.py`.
 
 ### Открытые задачи
 

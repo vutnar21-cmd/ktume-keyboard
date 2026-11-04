@@ -358,6 +358,7 @@ internal fun ExperimentsSettingsSection(
             palette = palette,
             onCheckedChange = { savePrefs(prefs.copy(experimentalCapitalizeNames = it)) }
         )
+        AutocorrectSettingsBlock(prefs = prefs, palette = palette, savePrefs = savePrefs)
     }
 }
 

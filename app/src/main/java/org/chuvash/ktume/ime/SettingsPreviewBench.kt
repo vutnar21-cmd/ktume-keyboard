@@ -11,7 +11,11 @@ import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -22,8 +26,12 @@ import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.awaitCancellation
+import org.chuvash.ktume.data.KeyboardLang
 import org.chuvash.ktume.data.KeyboardLayouts
 import org.chuvash.ktume.data.KeyboardPreferences
+import org.chuvash.ktume.data.PreferencesRepository
+import org.chuvash.ktume.data.autocorrect.AutocorrectEngine
+import org.chuvash.ktume.data.autocorrect.AutocorrectSession
 import org.chuvash.ktume.ui.theme.KesjeFontFamily
 import org.chuvash.ktume.ui.theme.KeyboardPalette
 
@@ -93,6 +101,14 @@ internal fun SettingsKeyboardPreview(
 
     fun feedback() = playKeypressSound(audioManager, prefs)
 
+    // Автозамена в тестовом поле работает так же, как в сервисе клавиатуры (эксперимент, задача 013)
+    val autocorrect = remember { AutocorrectSession() }
+    // Раскладка стенда живёт внутри KeyboardScreen; запоминаем её, чтобы автозамена знала язык
+    var previewLang by remember { mutableStateOf<KeyboardLang?>(null) }
+    LaunchedEffect(prefs.experimentalAutocorrect, prefs.autocorrectLangs) {
+        AutocorrectEngine.sync(context, prefs)
+    }
+
     Box(
         modifier = Modifier
             .fillMaxWidth()
@@ -107,13 +123,32 @@ internal fun SettingsKeyboardPreview(
                 afterCursor = afterCursor,
                 editorCapFlags = EditorInfo.TYPE_TEXT_FLAG_CAP_SENTENCES
             ),
+            onLangChange = { lang ->
+                previewLang = lang
+                autocorrect.cancelPending()
+            },
             onCommitText = { committed ->
                 feedback()
-                val nextText = beforeCursor + committed + afterCursor
-                val nextCursor = (beforeCursor.length + committed.length).coerceIn(0, nextText.length)
+                val correction = if (selStart == selEnd) {
+                    val lang = previewLang?.takeIf { it.code in prefs.enabledLayouts }
+                        ?: KeyboardLang.entries.firstOrNull { it.code in prefs.enabledLayouts }
+                    AutocorrectEngine.findCorrection(autocorrect, prefs, beforeCursor, committed, lang)
+                } else {
+                    autocorrect.cancelPending()
+                    null
+                }
+                val fixedBefore = if (correction != null) {
+                    beforeCursor.dropLast(correction.original.length) + correction.replacement
+                } else {
+                    beforeCursor
+                }
+                val nextText = fixedBefore + committed + afterCursor
+                val nextCursor = (fixedBefore.length + committed.length).coerceIn(0, nextText.length)
                 onTestFieldChange(TextFieldValue(nextText, TextRange(nextCursor)))
+                if (correction != null) autocorrect.onCorrectionApplied(correction, committed)
             },
             onReplaceSpaceWithComma = {
+                autocorrect.cancelPending()
                 if (KeyboardLayouts.canReplaceSpaceWithCommaBeforeCursor(beforeCursor, selStart != selEnd)) {
                     feedback()
                     val trimmedBefore = beforeCursor.dropLast(1)
@@ -127,7 +162,14 @@ internal fun SettingsKeyboardPreview(
             },
             onBackspace = {
                 feedback()
-                if (selStart != selEnd) {
+                val revert = if (selStart == selEnd) autocorrect.takeRevert(beforeCursor) else null
+                if (revert != null) {
+                    // Первый ⌫ после автозамены возвращает набранное слово
+                    val newBefore = beforeCursor.dropLast(revert.committedTail.length) + revert.original + revert.separator
+                    onTestFieldChange(TextFieldValue(newBefore + afterCursor, TextRange(newBefore.length)))
+                    if (prefs.autocorrectLearnWords) PreferencesRepository.addPersonalWord(context, revert.original)
+                } else if (selStart != selEnd) {
+                    autocorrect.cancelPending()
                     onTestFieldChange(TextFieldValue(beforeCursor + afterCursor, TextRange(selStart)))
                 } else if (beforeCursor.isNotEmpty()) {
                     val newBefore = KeyboardLayouts.dropLastGrapheme(beforeCursor)
@@ -136,6 +178,7 @@ internal fun SettingsKeyboardPreview(
             },
             onDeleteWord = {
                 feedback()
+                autocorrect.cancelPending()
                 if (selStart != selEnd) {
                     onTestFieldChange(TextFieldValue(beforeCursor + afterCursor, TextRange(selStart)))
                 } else {
@@ -146,11 +189,13 @@ internal fun SettingsKeyboardPreview(
             },
             onEnter = {
                 feedback()
+                autocorrect.cancelPending()
                 val nextText = "$beforeCursor\n$afterCursor"
                 val nextCursor = beforeCursor.length + 1
                 onTestFieldChange(TextFieldValue(nextText, TextRange(nextCursor)))
             },
             onMoveCursor = { delta ->
+                autocorrect.cancelPending()
                 val nextCursor = (selEnd + delta).coerceIn(0, fullText.length)
                 onTestFieldChange(testFieldValue.copy(selection = TextRange(nextCursor)))
             },
