@@ -73,7 +73,11 @@
    `⌫` сразу после исправления возвращает набранное слово. Слова из любого словаря не трогаются, поэтому
    чувашские слова не превращаются в русские; пароли, адреса, e-mail и аббревиатуры не исправляются.
    Личный словарь «Запоминать отменённые слова» хранится только на телефоне, его можно просмотреть и
-   очистить. Ленты подсказок нет — только исправление.
+   очистить. Ленты подсказок нет — только исправление. Подробное описание алгоритма — в
+   [`docs/autocorrect.md`](docs/autocorrect.md).
+
+> Полная документация по архитектуре и работе всех функций: **[`docs/README.md`](docs/README.md)**,
+> **[`docs/features-and-mechanics.md`](docs/features-and-mechanics.md)** и **[`docs/autocorrect.md`](docs/autocorrect.md)**.
 
 ### Значения по умолчанию
 
@@ -110,7 +114,7 @@ ktume-keyboard/
 ├── scripts/release.ps1               # Автосборка, проверка подписи, тег и публикация в GitHub Releases
 ├── scripts/fonts/                    # Сборка шрифта Kesje Rounded из Comfortaa (русская «т»)
 ├── scripts/dictionaries/             # Сборка словарей автозамены assets/dict/cv.tsv и ru.tsv
-├── docs/                             # SVG-кнопки скачивания, QR-код и материалы по названию приложения
+├── docs/                             # Документация проекта (README.md, features-and-mechanics.md, autocorrect.md) и SVG-ресурсы
 ├── fastlane/metadata/android/        # Карточка для магазинов: описания, иконка, скриншоты, changelogs/<versionCode>.txt
 ├── tasks/                            # Каталог задач на развитие и индекс статусов (tasks/README.md)
 └── app/
