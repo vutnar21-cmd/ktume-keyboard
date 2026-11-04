@@ -185,11 +185,7 @@ class SettingsActivity : ComponentActivity() {
                                 SettingsTab.LAYOUT -> LayoutSettingsSection(
                                     prefs = prefs,
                                     palette = activePalette,
-                                    savePrefs = savePrefs,
-                                    editingLang = editingLang,
-                                    onEditingLangChange = { editingLang = it },
-                                    selectedCell = selectedCell,
-                                    onSelectedCellChange = { selectedCell = it }
+                                    savePrefs = savePrefs
                                 )
 
                                 SettingsTab.APPEARANCE -> AppearanceSettingsSection(
@@ -209,7 +205,11 @@ class SettingsActivity : ComponentActivity() {
                                 SettingsTab.EXPERIMENTS -> ExperimentsSettingsSection(
                                     prefs = prefs,
                                     palette = activePalette,
-                                    savePrefs = savePrefs
+                                    savePrefs = savePrefs,
+                                    editingLang = editingLang,
+                                    onEditingLangChange = { editingLang = it },
+                                    selectedCell = selectedCell,
+                                    onSelectedCellChange = { selectedCell = it }
                                 )
 
                                 SettingsTab.SYSTEM -> SystemSettingsSection(
