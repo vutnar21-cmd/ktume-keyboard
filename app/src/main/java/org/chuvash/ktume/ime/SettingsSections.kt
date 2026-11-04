@@ -37,100 +37,8 @@ internal enum class SettingsTab(val title: String) {
 internal fun LayoutSettingsSection(
     prefs: KeyboardPreferences,
     palette: KeyboardPalette,
-    savePrefs: (KeyboardPreferences) -> Unit,
-    editingLang: KeyboardLang,
-    onEditingLangChange: (KeyboardLang) -> Unit,
-    selectedCell: Pair<Int, Int>?,
-    onSelectedCellChange: (Pair<Int, Int>?) -> Unit
+    savePrefs: (KeyboardPreferences) -> Unit
 ) {
-    SettingsSectionCard(
-        title = "Архитектура чувашской раскладки и Соты (Hex)",
-        palette = palette
-    ) {
-        SettingToggleRow(
-            title = "⬡ Паркетная сотовая сетка (4 ряда: 7 + 7 + 7 + 5)",
-            subtitle = "Скруглённые шестиугольники, плотно вложенные друг в друга без съезжания",
-            checked = prefs.hexagonalGrid,
-            palette = palette,
-            onCheckedChange = { enabled ->
-                val targetPreset = if (enabled) ChuvashLayoutPreset.HEX_4ROW else ChuvashLayoutPreset.BALANCED_26
-                val currentCvRows = prefs.customRowsByLang[KeyboardLang.CHUVASH]
-                val isDefaultPresetRows = currentCvRows == null ||
-                    ChuvashLayoutPreset.entries.any {
-                        currentCvRows == KeyboardLayouts.getDefaultRows(KeyboardLang.CHUVASH, it)
-                    }
-                val updatedMap = prefs.customRowsByLang.toMutableMap()
-                if (isDefaultPresetRows) {
-                    updatedMap[KeyboardLang.CHUVASH] = KeyboardLayouts.getDefaultRows(KeyboardLang.CHUVASH, targetPreset)
-                }
-                savePrefs(
-                    prefs.copy(
-                        hexagonalGrid = enabled,
-                        chuvashPreset = if (isDefaultPresetRows) targetPreset.id else prefs.chuvashPreset,
-                        customRowsByLang = updatedMap
-                    )
-                )
-                onSelectedCellChange(null)
-            }
-        )
-
-        Spacer(modifier = Modifier.height(6.dp))
-
-        ChuvashLayoutPreset.entries.forEach { preset ->
-            val isSelected = prefs.chuvashPreset == preset.id
-            Surface(
-                color = if (isSelected) palette.accentBg.copy(alpha = 0.16f) else palette.boardBg,
-                shape = RoundedCornerShape(12.dp),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 4.dp)
-                    .border(
-                        width = if (isSelected) 1.5.dp else 1.dp,
-                        color = if (isSelected) palette.accentBg else palette.hintText.copy(alpha = 0.25f),
-                        shape = RoundedCornerShape(12.dp)
-                    )
-                    .clickable {
-                        if (isSelected) return@clickable
-                        val updatedMap = prefs.customRowsByLang.toMutableMap()
-                        updatedMap[KeyboardLang.CHUVASH] = KeyboardLayouts.getDefaultRows(KeyboardLang.CHUVASH, preset)
-                        val isHexPreset = (preset == ChuvashLayoutPreset.HEX_4ROW)
-                        savePrefs(
-                            prefs.copy(
-                                chuvashPreset = preset.id,
-                                hexagonalGrid = isHexPreset,
-                                customRowsByLang = updatedMap
-                            )
-                        )
-                        onSelectedCellChange(null)
-                    }
-            ) {
-                Column(modifier = Modifier.padding(12.dp)) {
-                    Text(
-                        text = preset.title,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 13.sp,
-                        color = palette.keyText
-                    )
-                    Text(
-                        text = preset.subtitle,
-                        fontSize = 11.sp,
-                        color = palette.hintText
-                    )
-                }
-            }
-        }
-    }
-
-    SettingsRowEditor(
-        prefs = prefs,
-        palette = palette,
-        savePrefs = savePrefs,
-        editingLang = editingLang,
-        onEditingLangChange = onEditingLangChange,
-        selectedCell = selectedCell,
-        onSelectedCellChange = onSelectedCellChange
-    )
-
     SettingsSectionCard(
         title = "Активные языковые раскладки",
         palette = palette
@@ -337,7 +245,11 @@ internal fun InputSettingsSection(
 internal fun ExperimentsSettingsSection(
     prefs: KeyboardPreferences,
     palette: KeyboardPalette,
-    savePrefs: (KeyboardPreferences) -> Unit
+    savePrefs: (KeyboardPreferences) -> Unit,
+    editingLang: KeyboardLang,
+    onEditingLangChange: (KeyboardLang) -> Unit,
+    selectedCell: Pair<Int, Int>?,
+    onSelectedCellChange: (Pair<Int, Int>?) -> Unit
 ) {
     SettingsSectionCard(
         title = "Экспериментальные функции",
@@ -360,6 +272,94 @@ internal fun ExperimentsSettingsSection(
         )
         AutocorrectSettingsBlock(prefs = prefs, palette = palette, savePrefs = savePrefs)
     }
+
+    SettingsSectionCard(
+        title = "Архитектура чувашской раскладки и Соты (Hex)",
+        palette = palette
+    ) {
+        SettingToggleRow(
+            title = "⬡ Паркетная сотовая сетка (4 ряда: 7 + 7 + 7 + 5)",
+            subtitle = "Скруглённые шестиугольники, плотно вложенные друг в друга без съезжания",
+            checked = prefs.hexagonalGrid,
+            palette = palette,
+            onCheckedChange = { enabled ->
+                val targetPreset = if (enabled) ChuvashLayoutPreset.HEX_4ROW else ChuvashLayoutPreset.BALANCED_26
+                val currentCvRows = prefs.customRowsByLang[KeyboardLang.CHUVASH]
+                val isDefaultPresetRows = currentCvRows == null ||
+                    ChuvashLayoutPreset.entries.any {
+                        currentCvRows == KeyboardLayouts.getDefaultRows(KeyboardLang.CHUVASH, it)
+                    }
+                val updatedMap = prefs.customRowsByLang.toMutableMap()
+                if (isDefaultPresetRows) {
+                    updatedMap[KeyboardLang.CHUVASH] = KeyboardLayouts.getDefaultRows(KeyboardLang.CHUVASH, targetPreset)
+                }
+                savePrefs(
+                    prefs.copy(
+                        hexagonalGrid = enabled,
+                        chuvashPreset = if (isDefaultPresetRows) targetPreset.id else prefs.chuvashPreset,
+                        customRowsByLang = updatedMap
+                    )
+                )
+                onSelectedCellChange(null)
+            }
+        )
+
+        Spacer(modifier = Modifier.height(6.dp))
+
+        ChuvashLayoutPreset.entries.forEach { preset ->
+            val isSelected = prefs.chuvashPreset == preset.id
+            Surface(
+                color = if (isSelected) palette.accentBg.copy(alpha = 0.16f) else palette.boardBg,
+                shape = RoundedCornerShape(12.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 4.dp)
+                    .border(
+                        width = if (isSelected) 1.5.dp else 1.dp,
+                        color = if (isSelected) palette.accentBg else palette.hintText.copy(alpha = 0.25f),
+                        shape = RoundedCornerShape(12.dp)
+                    )
+                    .clickable {
+                        if (isSelected) return@clickable
+                        val updatedMap = prefs.customRowsByLang.toMutableMap()
+                        updatedMap[KeyboardLang.CHUVASH] = KeyboardLayouts.getDefaultRows(KeyboardLang.CHUVASH, preset)
+                        val isHexPreset = (preset == ChuvashLayoutPreset.HEX_4ROW)
+                        savePrefs(
+                            prefs.copy(
+                                chuvashPreset = preset.id,
+                                hexagonalGrid = isHexPreset,
+                                customRowsByLang = updatedMap
+                            )
+                        )
+                        onSelectedCellChange(null)
+                    }
+            ) {
+                Column(modifier = Modifier.padding(12.dp)) {
+                    Text(
+                        text = preset.title,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 13.sp,
+                        color = palette.keyText
+                    )
+                    Text(
+                        text = preset.subtitle,
+                        fontSize = 11.sp,
+                        color = palette.hintText
+                    )
+                }
+            }
+        }
+    }
+
+    SettingsRowEditor(
+        prefs = prefs,
+        palette = palette,
+        savePrefs = savePrefs,
+        editingLang = editingLang,
+        onEditingLangChange = onEditingLangChange,
+        selectedCell = selectedCell,
+        onSelectedCellChange = onSelectedCellChange
+    )
 }
 
 @Composable

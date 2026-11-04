@@ -344,6 +344,8 @@ class KeyboardLayoutsTest {
         // независимо от того, на левой или на правой половине находится клавиша
         assertEquals("г", KeyboardLayouts.primaryLongPressVariant(KeyboardLayouts.getLongPressVariants(KeyboardLang.CHUVASH, "к", false)))
         assertEquals("Г", KeyboardLayouts.primaryLongPressVariant(KeyboardLayouts.getLongPressVariants(KeyboardLang.CHUVASH, "к", true)))
+        assertEquals("э", KeyboardLayouts.primaryLongPressVariant(KeyboardLayouts.getLongPressVariants(KeyboardLang.CHUVASH, "е", false)))
+        assertEquals("Э", KeyboardLayouts.primaryLongPressVariant(KeyboardLayouts.getLongPressVariants(KeyboardLang.CHUVASH, "е", true)))
         assertEquals("д", KeyboardLayouts.primaryLongPressVariant(KeyboardLayouts.getLongPressVariants(KeyboardLang.CHUVASH, "т", false)))
         assertEquals("ж", KeyboardLayouts.primaryLongPressVariant(KeyboardLayouts.getLongPressVariants(KeyboardLang.CHUVASH, "ш", false)))
         assertEquals("-", KeyboardLayouts.primaryLongPressVariant(KeyboardLayouts.getLongPressVariants(KeyboardLang.CHUVASH, ".", false)))
