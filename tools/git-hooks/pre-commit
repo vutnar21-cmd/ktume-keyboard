@@ -2,27 +2,37 @@
 # Хук pre-commit стандарта project-workflow.
 # Подключение (один раз в основной копии): git config core.hooksPath tools/git-hooks
 #
-# tasks/task.md и AGENTS.md ведёт пользователь в основной копии на master/main.
-# Параллельные сессии в дочерних ветках (worktree) их не коммитят, чтобы при слиянии
-# не возникали конфликты и не затирались живые заметки.
+# 1. Папка tasks/ находится в .gitignore и ведётся только локально на диске (даже на main/master
+#    нельзя случайно закоммитить tasks/* через git add -f; при миграции удаление D из индекса разрешено).
+# 2. Файл AGENTS.md правится и коммитится только в основной копии на master/main.
 #
 # Разово обойти проверку (осознанно): git commit --no-verify
 
+staged_tasks=$(git diff --cached --name-only --diff-filter=ACMR -- tasks/)
+if [ -n "$staged_tasks" ]; then
+    echo "pre-commit: папка tasks/ ведётся только локально и не должна попадать в Git:" >&2
+    echo "$staged_tasks" | sed 's/^/    /' >&2
+    echo "" >&2
+    echo "Уберите файлы из индекса (на диске они сохранятся):" >&2
+    echo "    git rm -r --cached tasks/" >&2
+    exit 1
+fi
+
 branch=$(git symbolic-ref --quiet --short HEAD 2>/dev/null)
 
-# На основной ветке master или main — без ограничений
+# На основной ветке master или main — без остальных ограничений
 if [ "$branch" = "master" ] || [ "$branch" = "main" ]; then
     exit 0
 fi
 
-blocked=$(git diff --cached --name-only --diff-filter=ACMRD -- tasks/task.md AGENTS.md AGENT.md)
+blocked=$(git diff --cached --name-only --diff-filter=ACMRD -- AGENTS.md AGENT.md)
 [ -z "$blocked" ] && exit 0
 
 echo "pre-commit: в ветке '${branch:-detached HEAD}' нельзя коммитить:" >&2
 echo "$blocked" | sed 's/^/    /' >&2
 echo "" >&2
-echo "tasks/task.md и AGENTS.md правятся только на master/main в основной копии." >&2
-echo "Итоги задачи запишите в финальный отчёт сессии, а файлы уберите из индекса:" >&2
-echo "    git restore --staged tasks/task.md AGENTS.md AGENT.md" >&2
+echo "AGENTS.md правится только на master/main в основной копии." >&2
+echo "Уберите файл из индекса:" >&2
+echo "    git restore --staged AGENTS.md AGENT.md" >&2
 echo "Разово обойти проверку: git commit --no-verify" >&2
 exit 1
