@@ -1,5 +1,5 @@
 """
-Собирает шрифт клавиатуры Kesje Rounded (app/src/main/res/font/kesje_rounded.ttf) из Comfortaa.
+Собирает шрифт клавиатуры Kesje Rounded (src/app/src/main/res/font/kesje_rounded.ttf) из Comfortaa.
 
 В Comfortaa строчная «т» нарисована в болгарской форме и похожа на латинскую «m» (путается с «м»).
 Скрипт заменяет только её на стандартную русскую форму, собранную из штрихов самого шрифта:

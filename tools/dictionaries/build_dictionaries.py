@@ -1,19 +1,19 @@
 """
-Сборка частотных словарей автозамены: app/src/main/assets/dict/cv.tsv и ru.tsv.
+Сборка частотных словарей автозамены: src/app/src/main/assets/dict/cv.tsv и ru.tsv.
 
 Формат вывода: строки `# ...` — комментарии (источник, лицензия), затем `слово<TAB>частота`,
 отсортировано по убыванию частоты. Все слова в нижнем регистре, только кириллица
 (в чувашском — плюс ӑ ӗ ҫ ӳ); «ложная латиница» (ă ĕ ç ÿ ŭ) внутри кириллических слов
 приводится к чувашским буквам, как при вставке из буфера в самой клавиатуре.
 
-Источники (скачиваются в scripts/dictionaries/.cache/, в репозиторий не попадают):
+Источники (скачиваются в tools/dictionaries/.cache/, в репозиторий не попадают):
   - чувашский: alexantonov/chuvash_mono (Hugging Face, ~3,1 млн предложений, CC0-1.0);
   - русский: hermitdave/FrequencyWords, content/2018/ru/ru_full.txt (OpenSubtitles 2018, CC BY-SA 4.0);
   - фильтр опечаток корпуса при сборке: Hunspell cv_RU (hunspell.chv.su, 1.13) и ru_RU (LibreOffice).
 
 Запуск (нужны pyarrow и spylls только для пересборки, приложению они не нужны):
     python -m pip install pyarrow spylls
-    python scripts/dictionaries/build_dictionaries.py
+    python tools/dictionaries/build_dictionaries.py
 """
 from __future__ import annotations
 
@@ -27,7 +27,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 CACHE = Path(__file__).resolve().parent / ".cache"
-OUT = ROOT / "app" / "src" / "main" / "assets" / "dict"
+OUT = ROOT / "src" / "app" / "src" / "main" / "assets" / "dict"
 
 CV_SOURCES = [
     "https://huggingface.co/datasets/alexantonov/chuvash_mono/resolve/main/data/train-00000-of-00001.parquet",

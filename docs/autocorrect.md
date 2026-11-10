@@ -1,6 +1,6 @@
 # Система автозамены опечаток (`data/autocorrect/`)
 
-В этом документе подробно описана архитектура, алгоритмы, математическая модель, устройство словарей и правила работы экспериментальной функции **«Автозамена опечаток»** в клавиатуре **Кӗсье Тӳме** (задача [`013`](../tasks/013-microdictionary.md)).
+В этом документе подробно описана архитектура, алгоритмы, математическая модель, устройство словарей и правила работы экспериментальной функции **«Автозамена опечаток»** в клавиатуре **Кӗсье Тӳме** (задача [`T-013`](../tasks/specs/013-microdictionary.md)).
 
 ---
 
@@ -9,7 +9,7 @@
 1. **Экспериментальный статус (выключена по умолчанию).**
    Настройка `experimentalAutocorrect = false` (ключ DataStore `exp_autocorrect_v1`) находится на вкладке **«Эксперименты»**. Пока тумблер выключен, словари не загружаются в оперативную память (`AutocorrectEngine.sync`).
 2. **Без ленты подсказок.**
-   В соответствии с дизайн-инвариантом № 3 (`AGENT.md`), верхняя полоса клавиатуры остаётся однорядной (`36 dp`) без полосы кандидатов: автозамена работает автоматически при вводе разделителя и мгновенно откатывается одиночным нажатием `⌫`.
+   В соответствии с дизайн-инвариантом № 3 (`AGENTS.md`), верхняя полоса клавиатуры остаётся однорядной (`36 dp`) без полосы кандидатов: автозамена работает автоматически при вводе разделителя и мгновенно откатывается одиночным нажатием `⌫`.
 3. **Защита от перекрёстного искажения языков (`cv ⇄ ru`).**
    Если набранное слово присутствует **хотя бы в одном** из активных словарей (чувашском `cv.tsv`, русском `ru.tsv`) или в **личном словаре** пользователя, оно считается валидным словом и **никогда не исправляется**. Чувашское слово не может превратиться в русское даже при наборе на русской раскладке (и наоборот).
 4. **100 % локально и приватно.**
@@ -19,16 +19,16 @@
 
 ## 2. Архитектура модулей
 
-Исходный код расположен в пакете `app/src/main/java/org/chuvash/ktume/data/autocorrect/` и не зависит от Android UI:
+Исходный код расположен в пакете `src/app/src/main/java/org/chuvash/ktume/data/autocorrect/` и не зависит от Android UI:
 
 | Файл | Роль |
 |---|---|
-| [`WordTrie.kt`](../app/src/main/java/org/chuvash/ktume/data/autocorrect/WordTrie.kt) | Компактное префиксное дерево в плоских примитивных массивах (`CharArray`, `IntArray`) и поиск кандидатов обходом в глубину (DFS) со взвешенным расстоянием Дамерау–Левенштейна |
-| [`TypoCostModel.kt`](../app/src/main/java/org/chuvash/ktume/data/autocorrect/TypoCostModel.kt) | Модель стоимости правок: вычисляет соседство клавиш из рядов текущей раскладки (`fromRows`), задаёт дешёвую цену для диакритики (`ӑ ӗ ҫ ӳ`), похожих букв и сдвоенных нажатий, а также штраф первой буквы |
-| [`Autocorrector.kt`](../app/src/main/java/org/chuvash/ktume/data/autocorrect/Autocorrector.kt) | Чистая функция принятия решения (`suggest`): фильтрация токена и регистра, проверка по всем словарям, ранжирование кандидатов, пороги уверенности (`minGain`, `minMargin`), фильтр обсценной лексики и политика полей (`isFieldAllowed`) |
-| [`AutocorrectSession.kt`](../app/src/main/java/org/chuvash/ktume/data/autocorrect/AutocorrectSession.kt) | Состояние текущего поля ввода: хранит последнее автоисправление (`Revert`) для отката одним нажатием `⌫` и множество слов (`rejected`), отменённых пользователем в этом поле |
-| [`AutocorrectEngine.kt`](../app/src/main/java/org/chuvash/ktume/data/autocorrect/AutocorrectEngine.kt) | Фоновый загрузчик словарей из `assets/dict/<lang>.tsv`, кэш таблиц соседства клавиш по языку и пресету, единая точка вызова `findCorrection` для `KesjeImeService` и тестового поля настроек |
-| [`SettingsAutocorrect.kt`](../app/src/main/java/org/chuvash/ktume/ime/SettingsAutocorrect.kt) | Compose-компонент настроек на вкладке «Эксперименты»: тумблер, выбор языков (`Чӑвашла`, `Русский`), переключатель обучения и управление личным словарём |
+| [`WordTrie.kt`](../src/app/src/main/java/org/chuvash/ktume/data/autocorrect/WordTrie.kt) | Компактное префиксное дерево в плоских примитивных массивах (`CharArray`, `IntArray`) и поиск кандидатов обходом в глубину (DFS) со взвешенным расстоянием Дамерау–Левенштейна |
+| [`TypoCostModel.kt`](../src/app/src/main/java/org/chuvash/ktume/data/autocorrect/TypoCostModel.kt) | Модель стоимости правок: вычисляет соседство клавиш из рядов текущей раскладки (`fromRows`), задаёт дешёвую цену для диакритики (`ӑ ӗ ҫ ӳ`), похожих букв и сдвоенных нажатий, а также штраф первой буквы |
+| [`Autocorrector.kt`](../src/app/src/main/java/org/chuvash/ktume/data/autocorrect/Autocorrector.kt) | Чистая функция принятия решения (`suggest`): фильтрация токена и регистра, проверка по всем словарям, ранжирование кандидатов, пороги уверенности (`minGain`, `minMargin`), фильтр обсценной лексики и политика полей (`isFieldAllowed`) |
+| [`AutocorrectSession.kt`](../src/app/src/main/java/org/chuvash/ktume/data/autocorrect/AutocorrectSession.kt) | Состояние текущего поля ввода: хранит последнее автоисправление (`Revert`) для отката одним нажатием `⌫` и множество слов (`rejected`), отменённых пользователем в этом поле |
+| [`AutocorrectEngine.kt`](../src/app/src/main/java/org/chuvash/ktume/data/autocorrect/AutocorrectEngine.kt) | Фоновый загрузчик словарей из `assets/dict/<lang>.tsv`, кэш таблиц соседства клавиш по языку и пресету, единая точка вызова `findCorrection` для `KesjeImeService` и тестового поля настроек |
+| [`SettingsAutocorrect.kt`](../src/app/src/main/java/org/chuvash/ktume/ime/SettingsAutocorrect.kt) | Compose-компонент настроек на вкладке «Эксперименты»: тумблер, выбор языков (`Чӑвашла`, `Русский`), переключатель обучения и управление личным словарём |
 
 ---
 
@@ -50,7 +50,7 @@ flowchart TD
 ```
 
 ### Шаг 1. Триггер-разделитель (`Autocorrector.isSeparator`)
-Пока пользователь печатает буквы внутри слова, никакие замены не происходят. Проверка вызывается в трёх местах [`KesjeImeService`](../app/src/main/java/org/chuvash/ktume/ime/KesjeImeService.kt):
+Пока пользователь печатает буквы внутри слова, никакие замены не происходят. Проверка вызывается в трёх местах [`KesjeImeService`](../src/app/src/main/java/org/chuvash/ktume/ime/KesjeImeService.kt):
 - в `onCommitText`, когда вводится одиночный символ из набора: пробел (`' '`), `.`, `,`, `!`, `?`, `;`, `:`, `)`, `»`, `"`;
 - в `onReplaceSpaceWithComma` при двойном нажатии пробела (`", "`);
 - в `onEnter`, когда клавиша `Enter` в многострочном поле работает в режиме `EnterKeyAction.NEWLINE` и вставляет `\n`.
@@ -164,9 +164,9 @@ $$\text{score}(w) = \ln\left(\frac{\text{count}(w)}{\text{totalCount}}\right) - 
 
 ---
 
-## 7. Сборка словарей (`scripts/dictionaries/build_dictionaries.py`)
+## 7. Сборка словарей (`tools/dictionaries/build_dictionaries.py`)
 
-Файлы [`app/src/main/assets/dict/cv.tsv`](../app/src/main/assets/dict/cv.tsv) и [`app/src/main/assets/dict/ru.tsv`](../app/src/main/assets/dict/ru.tsv) **не редактируются вручную** — они генерируются скриптом [`scripts/dictionaries/build_dictionaries.py`](../scripts/dictionaries/build_dictionaries.py).
+Файлы [`src/app/src/main/assets/dict/cv.tsv`](../src/app/src/main/assets/dict/cv.tsv) и [`src/app/src/main/assets/dict/ru.tsv`](../src/app/src/main/assets/dict/ru.tsv) **не редактируются вручную** — они генерируются скриптом [`tools/dictionaries/build_dictionaries.py`](../tools/dictionaries/build_dictionaries.py).
 
 ### Источники и этапы очистки
 
@@ -177,32 +177,32 @@ $$\text{score}(w) = \ln\left(\frac{\text{count}(w)}{\text{totalCount}}\right) - 
    - **Фильтрация опечаток корпуса через Hunspell (`drop_corpus_typos`):** на этапе сборки скачивается орфографический словарь Николая Плотникова [`chuvash_spell_dictionary-1.13.xpi`](http://hunspell.chv.su/) (`cv_RU.aff` + `cv_RU.dic`). Если слово отвергается проверкой Hunspell **и** на расстоянии 1 правки от него есть слово в **≥ 20 раз частотнее**, такое слово признаётся опечаткой корпуса и удаляется (`98 216` форм). Сам словарь Hunspell в APK не включается.
 
 2. **Русский словарь (`ru.tsv` — 160 000 словоформ, частота ≥ 17, ~3,2 МБ):**
-   - **Источник частот:** проект [`hermitdave/FrequencyWords`](https://github.com/hermitdave/FrequencyWords), файл `content/2018/ru/ru_full.txt` (частоты по русским субтитрам OpenSubtitles 2018, лицензия **`CC BY-SA 4.0`**; атрибуция указана в [`THIRD_PARTY_NOTICES.md`](../THIRD_PARTY_NOTICES.md)).
+   - **Источник частот:** проект [`hermitdave/FrequencyWords`](https://github.com/hermitdave/FrequencyWords), файл `content/2018/ru/ru_full.txt` (частоты по русским субтитрам OpenSubtitles 2018, лицензия **`CC BY-SA 4.0`**; атрибуция указана в [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md)).
    - **Фильтрация опечаток субтитров через Hunspell (`drop_corpus_typos`):** в сырых субтитрах частые опечатки вроде *«пожалйста»* (40 раз) или *«здраствуйте»* (318 раз) присутствуют в списке и без фильтрации блокировали бы собственное исправление. Проверка через словарь Hunspell `ru_RU` из репозитория LibreOffice удаляет все слова, отвергнутые Hunspell и имеющие соседа в 1 правке в ≥ 20 раз частотнее (`173 990` опечаток), сохраняя при этом настоящие короткие и редкие слова (*«танк»*, *«тесть»*, *«меняю»*).
 
 ### Как пересобрать словари локально
 
-Исходные файлы скачиваются один раз в `scripts/dictionaries/.cache/` (папка добавлена в `.gitignore`):
+Исходные файлы скачиваются один раз в `tools/dictionaries/.cache/` (папка добавлена в `.gitignore`):
 
 ```powershell
 python -m pip install pyarrow spylls
-python scripts/dictionaries/build_dictionaries.py
+python tools/dictionaries/build_dictionaries.py
 ```
 
 ---
 
 ## 8. Тестирование и калибровка порогов
 
-Автозамена покрыта двумя наборами unit-тестов (`app/src/test/java/org/chuvash/ktume/data/autocorrect/`):
+Автозамена покрыта двумя наборами unit-тестов (`src/app/src/test/java/org/chuvash/ktume/data/autocorrect/`):
 
-1. **[`AutocorrectorTest.kt`](../app/src/test/java/org/chuvash/ktume/data/autocorrect/AutocorrectorTest.kt) (15 тестов):**
+1. **[`AutocorrectorTest.kt`](../src/app/src/test/java/org/chuvash/ktume/data/autocorrect/AutocorrectorTest.kt) (15 тестов):**
    - точность структуры `WordTrie` и всех 4 видов правок Дамерау–Левенштейна;
    - приоритет соседних клавиш раскладки и чувашских надстрочных знаков (`TypoCostModel`);
    - сохранение регистра (`превет → привет`, `Превет → Привет`, `ПРЕВЕТ → null`);
    - неприкосновенность известных слов чувашского, русского и личного словарей;
    - работа порога `minGain` против редких кандидатов;
    - фильтр обсценной лексики, политика полей `isFieldAllowed` и сессия отката `AutocorrectSession`.
-2. **[`AutocorrectDictionaryTest.kt`](../app/src/test/java/org/chuvash/ktume/data/autocorrect/AutocorrectDictionaryTest.kt) (7 тестов на реальных `cv.tsv` и `ru.tsv`):**
+2. **[`AutocorrectDictionaryTest.kt`](../src/app/src/test/java/org/chuvash/ktume/data/autocorrect/AutocorrectDictionaryTest.kt) (7 тестов на реальных `cv.tsv` и `ru.tsv`):**
    - исправление реальных русских и чувашских опечаток;
    - проверка, что тысячи частых чувашских и русских слов никогда не искажаются при наборе на любой раскладке;
    - замер скорости поиска (укладывается в бюджет времени реального ввода);

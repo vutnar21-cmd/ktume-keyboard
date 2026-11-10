@@ -1,39 +1,50 @@
-# Gradle
+# Gradle и Kotlin
 .gradle/
-build/
-!gradle/wrapper/gradle-wrapper.jar
+src/.gradle/
+**/build/
+**/.kotlin/
+!src/gradle/wrapper/gradle-wrapper.jar
 
-# Android Studio / IntelliJ
+# Android Studio / IntelliJ / Агенты
 .idea/
+src/.idea/
 *.iml
 captures/
 .externalNativeBuild/
 .cxx/
+.claude/worktrees/
+.claude/shots/
+.agents/scratch/
 
 # Локальная конфигурация SDK и ключи подписи релиза (НИКОГДА не коммитить в Git!)
 local.properties
+src/local.properties
 keystore.properties
+src/keystore.properties
 *.jks
+src/*.jks
 *.keystore
+src/*.keystore
 
-# Служебные каталоги Kotlin
-.kotlin/
-
-# Артефакты сборки
+# Готовые сборки и артефакты (лежат в releases/)
+releases/*
+!releases/.gitkeep
 *.apk
 *.aab
 *.ap_
 *.dex
 *.class
 
-# Логи и отчёты
+# Тяжёлые исследовательские материалы (опись ведётся в research/raw/MANIFEST.md)
+research/raw/*
+!research/raw/MANIFEST.md
+
+# Кэш исходников словарей автозамены (tools/dictionaries/build_dictionaries.py)
+tools/dictionaries/.cache/
+
+# Логи, отчёты и системные файлы
 *.log
 *.hprof
-
-# ОС
 .DS_Store
 Thumbs.db
 Desktop.ini
-
-# Кэш исходников словарей автозамены (scripts/dictionaries/build_dictionaries.py)
-scripts/dictionaries/.cache/

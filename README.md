@@ -76,8 +76,8 @@
    очистить. Ленты подсказок нет — только исправление. Подробное описание алгоритма — в
    [`docs/autocorrect.md`](docs/autocorrect.md).
 
-> Полная документация по архитектуре и работе всех функций: **[`docs/README.md`](docs/README.md)**,
-> **[`docs/features-and-mechanics.md`](docs/features-and-mechanics.md)** и **[`docs/autocorrect.md`](docs/autocorrect.md)**.
+> Полная документация по архитектуре и работе всех функций: **[`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md)**,
+> **[`docs/features-and-mechanics.md`](docs/features-and-mechanics.md)**, **[`docs/autocorrect.md`](docs/autocorrect.md)** и **[`docs/DECISIONS.md`](docs/DECISIONS.md)**.
 
 ### Значения по умолчанию
 
@@ -104,63 +104,37 @@
 
 ```text
 ktume-keyboard/
-├── AGENT.md                          # Обязательные правила и инварианты для ИИ-агентов
-├── README.md
-├── build.gradle.kts                  # AGP 9.5.0, Kotlin 2.4.21 (built-in + compose-плагин)
-├── settings.gradle.kts
-├── gradle.properties                 # JVM-параметры, kotlin.incremental=false
-├── keystore.properties.example       # Шаблон настроек подписи релиза (копируется в keystore.properties)
-├── release.bat                       # Запуск локальной автоматизации релиза (обёртка над scripts/release.ps1)
-├── scripts/release.ps1               # Автосборка, проверка подписи, тег и публикация в GitHub Releases
-├── scripts/fonts/                    # Сборка шрифта Kesje Rounded из Comfortaa (русская «т»)
-├── scripts/dictionaries/             # Сборка словарей автозамены assets/dict/cv.tsv и ru.tsv
-├── docs/                             # Документация проекта (README.md, features-and-mechanics.md, autocorrect.md) и SVG-ресурсы
-├── fastlane/metadata/android/        # Карточка для магазинов: описания, иконка, скриншоты, changelogs/<versionCode>.txt
-├── tasks/                            # Каталог задач на развитие и индекс статусов (tasks/README.md)
-└── app/
-    ├── build.gradle.kts              # SDK 26..37, Compose BOM, DataStore
-    └── src/
-        ├── main/
-        │   ├── AndroidManifest.xml   # SettingsActivity (LAUNCHER) + KesjeImeService (BIND_INPUT_METHOD)
-        │   ├── assets/dict/          # частотные словари автозамены cv.tsv (CC0) и ru.tsv (CC BY-SA 4.0)
-        │   ├── res/
-        │   │   ├── font/kesje_rounded.ttf  # Comfortaa с русской «т» (scripts/fonts/patch_comfortaa_te.py)
-        │   │   ├── values/strings.xml    # app_name, ime_name, названия подтипов
-        │   │   └── xml/method.xml        # подтипы: cv_RU, ru_RU, en_US, el_GR
-        │   └── java/org/chuvash/ktume/
-        │       ├── ui/theme/
-        │       │   └── ThemePalettes.kt        # шрифт Kesje Rounded, 7 палитр и Material 3 ColorScheme
-        │       ├── data/
-        │       │   ├── autocorrect/            # экспериментальная автозамена: WordTrie, TypoCostModel,
-        │       │   │                           # Autocorrector, AutocorrectSession, AutocorrectEngine
-        │       │   ├── ChuvashNames.kt         # базовый словарь имён собственных
-        │       │   ├── EditorTextLogic.kt      # Unicode-графемы, автозаглавная, контекст поля, геометрия
-        │       │   ├── EmojiCatalog.kt         # локальный каталог эмодзи по 6 категориям
-        │       │   ├── KeyboardLayouts.kt      # раскладки, пресеты, слои символов, Numpad, Long-Press
-        │       │   ├── KeyboardPreferences.kt  # неизменяемая модель настроек клавиатуры
-        │       │   └── PreferencesRepository.kt# PreferencesState и хранилище DataStore
-        │       └── ime/
-        │           ├── EmojiPickerPage.kt      # полноразмерная страница эмодзи
-        │           ├── FunctionalKeys.kt       # BackspaceKey, SpecialKey, SpacebarKey
-        │           ├── HoneycombHexGrid.kt     # 4-рядная паркетная сетка сот
-        │           ├── KesjeIcons.kt           # векторные иконки на Canvas
-        │           ├── KesjeImeService.kt      # InputMethodService, InputConnection, звук/вибро
-        │           ├── KeyboardRows.kt         # цифровой ряд, ряды букв/символов, нижний бар и меню 🌐
-        │           ├── KeyboardScreen.kt       # корневой экран клавиатуры, режимы и автомат Shift
-        │           ├── Keys.kt                 # поверхность клавиш (Rect/Hex), KeyButton и попапы
-        │           ├── NumpadGridView.kt       # телефонная панель 3 × 4
-        │           ├── SettingsActivity.kt     # каркас экрана настроек с 5 вкладками
-        │           ├── SettingsAutocorrect.kt  # блок автозамены и личного словаря («Эксперименты»)
-        │           ├── SettingsComponents.kt   # карточки секций, превью палитр, тумблеры, ползунки
-        │           ├── SettingsPreviewBench.kt # живое тестовое поле и закреплённый стенд клавиатуры
-        │           ├── SettingsRowEditor.kt    # интерактивный конструктор рядов раскладки
-        │           ├── SettingsSections.kt     # содержимое 5 вкладок настроек
-        │           └── Toolbar.kt              # однорядная верхняя полоса (36 dp): правка / буфер / вкладки эмодзи
-        └── test/java/org/chuvash/ktume/
-            ├── data/ChuvashNamesTest.kt
-            ├── data/autocorrect/AutocorrectorTest.kt
-            ├── data/autocorrect/AutocorrectDictionaryTest.kt
-            └── ime/KeyboardLayoutsTest.kt
+├── docs/                             # Документация (ARCHITECTURE.md, DECISIONS.md, PITFALLS.md, механики, политики)
+├── releases/                         # Локальные собранные .apk (вне Git)
+├── research/                         # Исследования (INDEX.md, выбор названия, референсы глифов)
+├── src/                              # Android / Gradle-проект (открывать эту папку в Android Studio)
+│   ├── app/
+│   │   ├── build.gradle.kts          # SDK 26..37, Compose BOM, DataStore
+│   │   └── src/
+│   │       ├── main/
+│   │       │   ├── AndroidManifest.xml   # SettingsActivity (LAUNCHER) + KesjeImeService (BIND_INPUT_METHOD)
+│   │       │   ├── assets/dict/          # частотные словари автозамены cv.tsv (CC0) и ru.tsv (CC BY-SA 4.0)
+│   │       │   ├── res/
+│   │       │   │   ├── font/kesje_rounded.ttf  # Comfortaa с русской «т» (tools/fonts/patch_comfortaa_te.py)
+│   │       │   │   ├── values/strings.xml      # app_name, ime_name, названия подтипов
+│   │       │   │   └── xml/method.xml          # подтипы: cv_RU, ru_RU, en_US, el_GR
+│   │       │   └── java/org/chuvash/ktume/
+│   │       │       ├── ui/theme/ThemePalettes.kt
+│   │       │       ├── data/                   # модели, раскладки, Unicode-логика, эмодзи, data/autocorrect/
+│   │       │       └── ime/                    # KesjeImeService, KeyboardScreen, клавиши, тулбар и 5 вкладок настроек
+│   │       └── test/java/org/chuvash/ktume/    # 50 JVM unit-тестов
+│   ├── fastlane/metadata/android/    # Карточка для магазинов: описания, иконка, скриншоты, changelogs/<versionCode>.txt
+│   ├── gradle/                       # Gradle Wrapper (9.8.2)
+│   ├── build.gradle.kts              # AGP 9.5.0, Kotlin 2.4.21 (built-in + compose-плагин)
+│   ├── gradle.properties             # JVM-параметры, kotlin.incremental=false
+│   ├── gradlew / gradlew.bat
+│   ├── keystore.properties.example   # Шаблон настроек подписи релиза (копируется в src/keystore.properties)
+│   └── settings.gradle.kts
+├── tasks/                            # Очередь задач (task.md, archive.md, specs/001..018)
+├── tools/                            # Автоматизация релиза (release.bat / release.ps1), сборка шрифта и словарей, git-hooks
+├── AGENTS.md                         # Короткие правила и инварианты для ИИ-агентов
+├── LICENSE                           # Лицензия кода Apache-2.0
+└── README.md
 ```
 
 ### Пакеты и ответственность
@@ -185,34 +159,34 @@ Gradle-демону и Android Lint нужен JDK 21 (локальный пут
 
 ```bash
 export JAVA_HOME="C:/Program Files/COMSOL/COMSOL64/Multiphysics/java/win64/jre"
-./gradlew assembleDebug testDebugUnitTest lintDebug --no-daemon
+cd src && ./gradlew assembleDebug testDebugUnitTest lintDebug --no-daemon
 ```
 
-Отладочный APK: `app/build/outputs/apk/debug/app-debug.apk`.
+Отладочный APK: `src/app/build/outputs/apk/debug/app-debug.apk`.
 
 ### Релизная сборка (GitHub Releases, Google Play, RuStore)
 
-1. Скопируйте [`keystore.properties.example`](keystore.properties.example) в `keystore.properties`
+1. Скопируйте [`src/keystore.properties.example`](src/keystore.properties.example) в `src/keystore.properties`
    (добавлен в `.gitignore`), сгенерируйте ключ `keytool` по инструкции внутри файла и укажите пароли.
    **Храните копию `.jks` и паролей вне папки проекта:** отпечаток сертификата опубликован выше и
    проверяется Obtainium, без этого ключа выпустить обновление невозможно.
-2. Соберите нужный артефакт:
-   - `./gradlew assembleRelease --no-daemon` → подписанный `app/build/outputs/apk/release/app-release.apk`
+2. Соберите нужный артефакт (из папки `src/`):
+   - `./gradlew assembleRelease --no-daemon` → подписанный `src/app/build/outputs/apk/release/app-release.apk`
      (для GitHub Releases и RuStore; без `keystore.properties` собирается неподписанный
      `app-release-unsigned.apk`).
-   - `./gradlew bundleRelease --no-daemon` → `app/build/outputs/bundle/release/app-release.aab`
+   - `./gradlew bundleRelease --no-daemon` → `src/app/build/outputs/bundle/release/app-release.aab`
      (для Google Play).
 3. Метаданные карточки магазина (описание, иконка `512×512`, скриншоты в `images/phoneScreenshots/`,
-   список изменений) хранятся в `fastlane/metadata/android/` (`ru-RU` и `en-US`).
-4. **Автоматический выпуск новых версий одной командой (`release.bat`):**
+   список изменений) хранятся в `src/fastlane/metadata/android/` (`ru-RU` и `en-US`).
+4. **Автоматический выпуск новых версий одной командой (`tools/release.bat`):**
    - Приватный ключ `.jks` никуда в облако не загружается — сборка, проверка подписи и публикация
      выполняются локально через официальный `gh` CLI (`winget install --id GitHub.cli -e`,
      затем один раз `gh auth login`).
-   - Для выпуска новой версии поднимите `versionCode` и `versionName` в `app/build.gradle.kts`, добавьте
-     `fastlane/metadata/android/{ru-RU,en-US}/changelogs/<versionCode>.txt` (до 500 байт), закоммитьте изменения и запустите:
+   - Для выпуска новой версии поднимите `versionCode` и `versionName` в `src/app/build.gradle.kts`, добавьте
+     `src/fastlane/metadata/android/{ru-RU,en-US}/changelogs/<versionCode>.txt` (до 500 байт), закоммитьте изменения и запустите:
      ```powershell
-     .\release.bat -DryRun   # предварительная проверка сборки, подписи и текста релиза без пуша
-     .\release.bat           # пуш main, тег v<versionName> и публикация ktume-<versionName>.apk на GitHub
+     .\tools\release.bat -DryRun   # предварительная проверка сборки, подписи и текста релиза без пуша
+     .\tools\release.bat           # пуш main, тег v<versionName> и публикация releases/ktume-<versionName>.apk на GitHub
      ```
    - После публикации `ktume-<versionName>.apk` на GitHub пользователи Obtainium получат обновление
      автоматически, а Obtainium сверит подпись с опубликованным отпечатком.
@@ -248,20 +222,20 @@ export JAVA_HOME="C:/Program Files/COMSOL/COMSOL64/Multiphysics/java/win64/jre"
 
 ## 4. Открытые задачи и вопросы
 
-План работ и статусы ведутся в каталоге [`tasks/README.md`](tasks/README.md). Ключевые открытые темы:
+План работ и очередь задач ведутся в [`tasks/task.md`](tasks/task.md) (подробные разборы — в `tasks/specs/`). Ключевые открытые темы:
 
-- **Финальное название приложения** ([`004`](tasks/004-app-name.md)): утверждено название
+- **Финальное название приложения** ([`T-004`](tasks/specs/004-app-name.md)): утверждено название
   **Кӗсье Тӳме / Kĕsje Tüme** (кратко **кТӳме / kTüme**) и идентификатор пакета `org.chuvash.ktume` (на приёмке).
-- **Таблицы Long-Press** ([`005`](tasks/005-longpress-glyphs.md)): очистка дублей и выверка
-  частотности вариантов. Лента частиц и аффиксов ([`002`](tasks/002-chuvash-morphemes.md)) удалена
+- **Таблицы Long-Press** ([`T-005`](tasks/specs/005-longpress-glyphs.md)): очистка дублей и выверка
+  частотности вариантов. Лента частиц и аффиксов ([`T-002`](tasks/specs/002-chuvash-morphemes.md)) удалена
   по решению владельца.
-- **Эргономика нажатий и зазоров** ([`015`](tasks/015-key-gap-8.md), [`016`](tasks/016-hyphen-vs-space.md),
-  [`018`](tasks/018-tap-in-gap.md)): подбор финальных `hGap`/`vGap` на устройстве, бесшовные хитбоксы
+- **Эргономика нажатий и зазоров** ([`T-015`](tasks/specs/015-key-gap-8.md), [`T-016`](tasks/specs/016-hyphen-vs-space.md),
+  [`T-018`](tasks/specs/018-tap-in-gap.md)): подбор финальных `hGap`/`vGap` на устройстве, бесшовные хитбоксы
   клавиш в зазорах (`gap / 2`) и защита от случайного нажатия дефиса вместо пробела.
-- **Полировка сот и техдолг** ([`001`](tasks/001-hex-polish.md), [`007`](tasks/007-code-cleanup.md),
-  [`009`](tasks/009-tech-debt-review.md)): проверка `HoneycombHexGrid` на разных экранах, удаление
+- **Полировка сот и техдолг** ([`T-001`](tasks/specs/001-hex-polish.md), [`T-007`](tasks/specs/007-code-cleanup.md),
+  [`T-009`](tasks/specs/009-tech-debt-review.md)): проверка `HoneycombHexGrid` на разных экранах, удаление
   остатков мёртвого кода и мелкие UX-исправления по итогам код-ревью.
-- **Автозамена опечаток** ([`013`](tasks/013-microdictionary.md)): эксперимент для чувашского и русского;
+- **Автозамена опечаток** ([`T-013`](tasks/specs/013-microdictionary.md)): эксперимент для чувашского и русского;
   проверка на устройстве и подбор порогов, вопрос о ленте подсказок отложен.
 
 ---
@@ -269,12 +243,12 @@ export JAVA_HOME="C:/Program Files/COMSOL/COMSOL64/Multiphysics/java/win64/jre"
 ## 5. Лицензия и приватность
 
 - **Код проекта:** распространяется под лицензией [Apache License 2.0](LICENSE).
-- **Шрифт и сторонние библиотеки:** шрифт Kesje Rounded (`app/src/main/res/font/kesje_rounded.ttf`) —
+- **Шрифт и сторонние библиотеки:** шрифт Kesje Rounded (`src/app/src/main/res/font/kesje_rounded.ttf`) —
   изменённая версия Comfortaa (перерисована строчная «т»); распространяется под свободной лицензией **SIL Open Font License 1.1** (`OFL-1.1`); подробности —
-  в [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
-- **Словари автозамены:** `app/src/main/assets/dict/cv.tsv` — из корпуса `alexantonov/chuvash_mono`
-  (`CC0-1.0`); `app/src/main/assets/dict/ru.tsv` — из `hermitdave/FrequencyWords` (OpenSubtitles 2018),
+  в [docs/THIRD_PARTY_NOTICES.md](docs/THIRD_PARTY_NOTICES.md).
+- **Словари автозамены:** `src/app/src/main/assets/dict/cv.tsv` — из корпуса `alexantonov/chuvash_mono`
+  (`CC0-1.0`); `src/app/src/main/assets/dict/ru.tsv` — из `hermitdave/FrequencyWords` (OpenSubtitles 2018),
   распространяется под **CC BY-SA 4.0** (лицензия относится только к этому файлу, код остаётся Apache-2.0);
-  подробности — в [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
-- **Политика конфиденциальности:** [PRIVACY_POLICY.md](PRIVACY_POLICY.md) (приложение работает на 100 %
+  подробности — в [docs/THIRD_PARTY_NOTICES.md](docs/THIRD_PARTY_NOTICES.md).
+- **Политика конфиденциальности:** [docs/PRIVACY_POLICY.md](docs/PRIVACY_POLICY.md) (приложение работает на 100 %
   офлайн и не запрашивает разрешение `INTERNET`).

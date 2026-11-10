@@ -8,11 +8,11 @@
     Obtainium users get the update from GitHub Releases and verify the signing certificate.
 
 .EXAMPLE
-    .\scripts\release.ps1 -DryRun
+    .\tools\release.ps1 -DryRun
     Runs tests, lint, release build, APK signature checks, and previews release notes.
 
 .EXAMPLE
-    .\scripts\release.ps1
+    .\tools\release.ps1
     Pushes main, creates & pushes tag v<versionName>, and publishes ktume-<versionName>.apk via gh CLI.
 #>
 [CmdletBinding()]
@@ -64,10 +64,10 @@ function Resolve-Jdk21Home {
     Fail "JDK 21 not found. Set org.gradle.java.home in ~/.gradle/gradle.properties or JAVA_HOME."
 }
 
-function Resolve-Apksigner([string]$ProjectRoot) {
+function Resolve-Apksigner([string]$GradleRoot) {
     $sdkCandidates = New-Object System.Collections.Generic.List[string]
 
-    $localProps = Join-Path $ProjectRoot "local.properties"
+    $localProps = Join-Path $GradleRoot "local.properties"
     if (Test-Path $localProps) {
         foreach ($line in [System.IO.File]::ReadAllLines($localProps, [System.Text.Encoding]::UTF8)) {
             if ($line -match '^\s*sdk\.dir\s*=\s*(.+)$') {
@@ -115,22 +115,23 @@ function Resolve-GhCli {
 }
 
 $projectRoot = (Resolve-Path (Join-Path $PSScriptRoot "..")).Path
+$gradleRoot = Join-Path $projectRoot "src"
 Push-Location $projectRoot
 try {
     [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
 
-    # 1. Read versionCode & versionName from app/build.gradle.kts
-    Write-Step "Reading version metadata from app/build.gradle.kts"
-    $gradleBuildPath = Join-Path $projectRoot "app\build.gradle.kts"
+    # 1. Read versionCode & versionName from src/app/build.gradle.kts
+    Write-Step "Reading version metadata from src/app/build.gradle.kts"
+    $gradleBuildPath = Join-Path $gradleRoot "app\build.gradle.kts"
     $gradleContent = [System.IO.File]::ReadAllText($gradleBuildPath, [System.Text.Encoding]::UTF8)
 
     if ($gradleContent -notmatch 'versionCode\s*=\s*(\d+)') {
-        Fail "Could not parse versionCode from app/build.gradle.kts"
+        Fail "Could not parse versionCode from src/app/build.gradle.kts"
     }
     $versionCode = [int]$Matches[1]
 
     if ($gradleContent -notmatch 'versionName\s*=\s*"([^"]+)"') {
-        Fail "Could not parse versionName from app/build.gradle.kts"
+        Fail "Could not parse versionName from src/app/build.gradle.kts"
     }
     $versionName = $Matches[1]
     $tagName = "v$versionName"
@@ -148,16 +149,16 @@ try {
     # 2. Pre-flight checks: signing, Fastlane changelogs, Git cleanliness, tag, gh CLI
     Write-Step "Running pre-flight checks"
 
-    $keystorePropsPath = Join-Path $projectRoot "keystore.properties"
+    $keystorePropsPath = Join-Path $gradleRoot "keystore.properties"
     if (-not (Test-Path $keystorePropsPath) -and -not $env:KESJE_KEYSTORE_PATH) {
-        Fail "Missing keystore.properties (and KESJE_KEYSTORE_PATH is not set). Copy keystore.properties.example to keystore.properties and fill it in first."
+        Fail "Missing src/keystore.properties (and KESJE_KEYSTORE_PATH is not set). Copy src/keystore.properties.example to src/keystore.properties and fill it in first."
     }
 
-    $ruChangelogPath = Join-Path $projectRoot "fastlane\metadata\android\ru-RU\changelogs\$versionCode.txt"
-    $enChangelogPath = Join-Path $projectRoot "fastlane\metadata\android\en-US\changelogs\$versionCode.txt"
+    $ruChangelogPath = Join-Path $gradleRoot "fastlane\metadata\android\ru-RU\changelogs\$versionCode.txt"
+    $enChangelogPath = Join-Path $gradleRoot "fastlane\metadata\android\en-US\changelogs\$versionCode.txt"
 
     if (-not (Test-Path $ruChangelogPath)) {
-        Fail "Missing Fastlane changelog for versionCode ${versionCode}: fastlane/metadata/android/ru-RU/changelogs/$versionCode.txt"
+        Fail "Missing Fastlane changelog for versionCode ${versionCode}: src/fastlane/metadata/android/ru-RU/changelogs/$versionCode.txt"
     }
     $ruChangelog = [System.IO.File]::ReadAllText($ruChangelogPath, [System.Text.Encoding]::UTF8).Trim()
     $ruBytes = [System.Text.Encoding]::UTF8.GetByteCount($ruChangelog)
@@ -173,7 +174,7 @@ try {
             Fail "en-US changelog ($versionCode.txt) exceeds 500 UTF-8 bytes (current: $enBytes bytes)."
         }
     } else {
-        Write-Warn "Optional English changelog fastlane/metadata/android/en-US/changelogs/$versionCode.txt not found."
+        Write-Warn "Optional English changelog src/fastlane/metadata/android/en-US/changelogs/$versionCode.txt not found."
     }
 
     $gitStatus = (& git status --porcelain)
@@ -205,7 +206,7 @@ try {
 
     $jdkHome = Resolve-Jdk21Home
     $env:JAVA_HOME = $jdkHome
-    $apksignerExe = Resolve-Apksigner -ProjectRoot $projectRoot
+    $apksignerExe = Resolve-Apksigner -GradleRoot $gradleRoot
     $ghExe = Resolve-GhCli
 
     Write-Host "JAVA_HOME    : $jdkHome"
@@ -241,21 +242,29 @@ try {
     }
     $gradleTasks.Add("--no-daemon")
 
-    Write-Step "Running Gradle: .\gradlew.bat $($gradleTasks -join ' ')"
-    & (Join-Path $projectRoot "gradlew.bat") @gradleTasks
-    if ($LASTEXITCODE -ne 0) {
-        Fail "Gradle build failed with exit code $LASTEXITCODE."
+    Write-Step "Running Gradle in src/: .\gradlew.bat $($gradleTasks -join ' ')"
+    Push-Location $gradleRoot
+    try {
+        & (Join-Path $gradleRoot "gradlew.bat") @gradleTasks
+        $gradleExit = $LASTEXITCODE
+    } finally {
+        Pop-Location
+    }
+    if ($gradleExit -ne 0) {
+        Fail "Gradle build failed with exit code $gradleExit."
     }
 
-    $builtApkPath = Join-Path $projectRoot "app\build\outputs\apk\release\app-release.apk"
+    $builtApkPath = Join-Path $gradleRoot "app\build\outputs\apk\release\app-release.apk"
     if (-not (Test-Path $builtApkPath)) {
-        Fail "Signed APK not found at $builtApkPath (check keystore.properties so Gradle does not emit an unsigned APK)."
+        Fail "Signed APK not found at $builtApkPath (check src/keystore.properties so Gradle does not emit an unsigned APK)."
     }
 
     if ($DryRun) {
-        $targetApkPath = Join-Path $projectRoot "app\build\outputs\apk\release\$apkFileName"
+        $targetApkPath = Join-Path $gradleRoot "app\build\outputs\apk\release\$apkFileName"
     } else {
-        $targetApkPath = Join-Path $projectRoot $apkFileName
+        $releasesDir = Join-Path $projectRoot "releases"
+        New-Item -ItemType Directory -Force -Path $releasesDir | Out-Null
+        $targetApkPath = Join-Path $releasesDir $apkFileName
     }
     Copy-Item -Path $builtApkPath -Destination $targetApkPath -Force
 
@@ -318,7 +327,7 @@ try {
     $notesLines.Add("- ${lblCert}: ``$actualCertSha256``")
 
     $releaseNotes = ($notesLines -join "`n") + "`n"
-    $notesPath = Join-Path $projectRoot "app\build\outputs\apk\release\release-notes-$tagName.md"
+    $notesPath = Join-Path $gradleRoot "app\build\outputs\apk\release\release-notes-$tagName.md"
     [System.IO.File]::WriteAllText($notesPath, $releaseNotes, [System.Text.UTF8Encoding]::new($false))
 
     Write-Host "APK Path     : $targetApkPath" -ForegroundColor Green

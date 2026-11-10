@@ -12,7 +12,7 @@ import org.junit.Test
 /**
  * Автозамена на настоящих словарях `assets/dict/cv.tsv` и `ru.tsv`: типовые опечатки исправляются,
  * частые чувашские и русские слова не трогаются, поиск укладывается в бюджет времени.
- * Если в `scripts/dictionaries/.cache/` есть выборки редких форм (их пишет скрипт сборки),
+ * Если в `tools/dictionaries/.cache/` есть выборки редких форм (их пишет скрипт сборки),
  * печатается доля ложных исправлений — для подбора порогов, без жёсткой проверки.
  */
 class AutocorrectDictionaryTest {
@@ -105,7 +105,7 @@ class AutocorrectDictionaryTest {
     }
 
     private fun holdout(lang: String): List<String>? {
-        val file = File("../scripts/dictionaries/.cache/${lang}_holdout.tsv")
+        val file = File("../../tools/dictionaries/.cache/${lang}_holdout.tsv")
         if (!file.isFile) return null
         return file.readLines().map { it.substringBefore('\t') }.filter { it.length >= 3 }
     }

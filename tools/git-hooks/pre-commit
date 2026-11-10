@@ -1,0 +1,28 @@
+#!/bin/sh
+# Хук pre-commit стандарта project-workflow.
+# Подключение (один раз в основной копии): git config core.hooksPath tools/git-hooks
+#
+# tasks/task.md и AGENTS.md ведёт пользователь в основной копии на master/main.
+# Параллельные сессии в дочерних ветках (worktree) их не коммитят, чтобы при слиянии
+# не возникали конфликты и не затирались живые заметки.
+#
+# Разово обойти проверку (осознанно): git commit --no-verify
+
+branch=$(git symbolic-ref --quiet --short HEAD 2>/dev/null)
+
+# На основной ветке master или main — без ограничений
+if [ "$branch" = "master" ] || [ "$branch" = "main" ]; then
+    exit 0
+fi
+
+blocked=$(git diff --cached --name-only --diff-filter=ACMRD -- tasks/task.md AGENTS.md AGENT.md)
+[ -z "$blocked" ] && exit 0
+
+echo "pre-commit: в ветке '${branch:-detached HEAD}' нельзя коммитить:" >&2
+echo "$blocked" | sed 's/^/    /' >&2
+echo "" >&2
+echo "tasks/task.md и AGENTS.md правятся только на master/main в основной копии." >&2
+echo "Итоги задачи запишите в финальный отчёт сессии, а файлы уберите из индекса:" >&2
+echo "    git restore --staged tasks/task.md AGENTS.md AGENT.md" >&2
+echo "Разово обойти проверку: git commit --no-verify" >&2
+exit 1
