@@ -7,7 +7,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 import org.chuvash.ktume.data.KeyboardLang
-import org.chuvash.ktume.data.KeyboardLayouts
 import org.chuvash.ktume.data.KeyboardPreferences
 import org.chuvash.ktume.data.PreferencesState
 
@@ -15,7 +14,7 @@ import org.chuvash.ktume.data.PreferencesState
  * МОДУЛЬ: AutocorrectEngine.kt — загрузка словарей автозамены из `assets/dict/<язык>.tsv`
  * и общий [Autocorrector] для сервиса клавиатуры и тестового поля настроек.
  *
- * Словари грузятся в фоне только когда эксперимент включён, и выгружаются при его выключении
+ * Словари грузятся в фоне только когда автозамена включена, и выгружаются при её выключении
  * или снятии языка — память занимают только реально нужные словари. Пока словарь не готов,
  * автозамена просто не срабатывает.
  */
@@ -33,7 +32,7 @@ object AutocorrectEngine {
     private var loaded: Map<String, WordTrie> = emptyMap()
     private val loading = HashSet<String>()
 
-    /** Текущий корректор или `null`, если эксперимент выключен или словари ещё грузятся. */
+    /** Текущий корректор или `null`, если автозамена выключена или словари ещё грузятся. */
     @Volatile
     var corrector: Autocorrector? = null
         private set
@@ -43,7 +42,7 @@ object AutocorrectEngine {
 
     /** Приводит набор загруженных словарей к настройкам: догружает нужные, выгружает лишние. */
     fun sync(context: Context, prefs: KeyboardPreferences) {
-        val target = if (prefs.experimentalAutocorrect) {
+        val target = if (prefs.autocorrectEnabled) {
             SUPPORTED_LANGS.filter { it in prefs.autocorrectLangs }.toSet()
         } else {
             emptySet()
@@ -96,7 +95,7 @@ object AutocorrectEngine {
 
     /** Цены правок по рядам текущей раскладки (кэшируются, пока ряды не меняются). */
     fun costsFor(prefs: KeyboardPreferences, lang: KeyboardLang): TypoCostModel {
-        val rows = prefs.customRowsByLang[lang] ?: KeyboardLayouts.getDefaultRows(lang)
+        val rows = prefs.rowsFor(lang)
         synchronized(lock) {
             if (rows != costCacheKey) {
                 costCacheKey = rows
@@ -117,7 +116,7 @@ object AutocorrectEngine {
         separator: String,
         langOverride: KeyboardLang? = null
     ): Autocorrector.Correction? {
-        if (!prefs.experimentalAutocorrect) {
+        if (!prefs.autocorrectEnabled) {
             session.cancelPending()
             return null
         }

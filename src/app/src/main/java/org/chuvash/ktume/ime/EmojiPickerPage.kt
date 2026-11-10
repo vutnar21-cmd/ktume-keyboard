@@ -31,6 +31,7 @@ import androidx.compose.ui.window.PopupProperties
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import org.chuvash.ktume.BuildConfig
 import org.chuvash.ktume.data.EmojiCategory
 import org.chuvash.ktume.data.KeyboardLang
 import org.chuvash.ktume.data.KeyboardPreferences
@@ -89,7 +90,7 @@ internal fun EmojiPickerPage(
     }
 
     val hPad = prefs.keyGapHDp.dp / 2
-    val vPad = if (prefs.hexagonalGrid) 0.dp else (prefs.keyGapVDp.dp / 2)
+    val vPad = if (BuildConfig.DEBUG && prefs.hexagonalGrid) 0.dp else (prefs.keyGapVDp.dp / 2)
 
     Column(
         modifier = Modifier

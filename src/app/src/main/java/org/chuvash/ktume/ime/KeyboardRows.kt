@@ -133,6 +133,12 @@ internal fun AlphaSymbolRows(
                 }
             }
 
+            val totalRowWeight = rowKeys.size + if (rowIndex == activeRows.lastIndex) 2.7f else 0f
+            val rowFontSizeSp = if (totalRowWeight > 11.8f) {
+                (prefs.fontSizeSp * (11.6f / totalRowWeight)).coerceAtLeast(18f)
+            } else {
+                prefs.fontSizeSp
+            }
             val lastColIdx = (rowKeys.size - 1).coerceAtLeast(1)
             rowKeys.forEachIndexed { colIndex, baseChar ->
                 val displayChar = if (keyboardMode == KeyboardMode.LETTERS && isShifted) {
@@ -153,6 +159,7 @@ internal fun AlphaSymbolRows(
                     palette = palette,
                     colFraction = colIndex.toFloat() / lastColIdx.toFloat(),
                     useHexShape = false,
+                    customFontSizeSp = rowFontSizeSp,
                     gapPadH = hPad,
                     gapPadV = vPad,
                     modifier = Modifier.weight(1f),

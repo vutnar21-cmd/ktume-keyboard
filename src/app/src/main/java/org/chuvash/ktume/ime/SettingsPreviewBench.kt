@@ -101,13 +101,17 @@ internal fun SettingsKeyboardPreview(
 
     fun feedback() = playKeypressSound(audioManager, prefs)
 
-    // Автозамена в тестовом поле работает так же, как в сервисе клавиатуры (эксперимент, задача 013)
+    // Автозамена в тестовом поле работает идентично сервису клавиатуры (включая имена и Enter)
     val autocorrect = remember { AutocorrectSession() }
     // Раскладка стенда живёт внутри KeyboardScreen; запоминаем её, чтобы автозамена знала язык
     var previewLang by remember { mutableStateOf<KeyboardLang?>(null) }
-    LaunchedEffect(prefs.experimentalAutocorrect, prefs.autocorrectLangs) {
+    LaunchedEffect(prefs.autocorrectEnabled, prefs.autocorrectLangs) {
         AutocorrectEngine.sync(context, prefs)
     }
+
+    fun resolvePreviewLang(): KeyboardLang? =
+        previewLang?.takeIf { it.code in prefs.enabledLayouts }
+            ?: KeyboardLang.entries.firstOrNull { it.code in prefs.enabledLayouts }
 
     Box(
         modifier = Modifier
@@ -130,9 +134,7 @@ internal fun SettingsKeyboardPreview(
             onCommitText = { committed ->
                 feedback()
                 val correction = if (selStart == selEnd) {
-                    val lang = previewLang?.takeIf { it.code in prefs.enabledLayouts }
-                        ?: KeyboardLang.entries.firstOrNull { it.code in prefs.enabledLayouts }
-                    AutocorrectEngine.findCorrection(autocorrect, prefs, beforeCursor, committed, lang)
+                    AutocorrectEngine.findCorrection(autocorrect, prefs, beforeCursor, committed, resolvePreviewLang())
                 } else {
                     autocorrect.cancelPending()
                     null
@@ -189,10 +191,21 @@ internal fun SettingsKeyboardPreview(
             },
             onEnter = {
                 feedback()
-                autocorrect.cancelPending()
-                val nextText = "$beforeCursor\n$afterCursor"
-                val nextCursor = beforeCursor.length + 1
+                val correction = if (selStart == selEnd) {
+                    AutocorrectEngine.findCorrection(autocorrect, prefs, beforeCursor, "\n", resolvePreviewLang())
+                } else {
+                    autocorrect.cancelPending()
+                    null
+                }
+                val fixedBefore = if (correction != null) {
+                    beforeCursor.dropLast(correction.original.length) + correction.replacement
+                } else {
+                    beforeCursor
+                }
+                val nextText = "$fixedBefore\n$afterCursor"
+                val nextCursor = (fixedBefore.length + 1).coerceIn(0, nextText.length)
                 onTestFieldChange(TextFieldValue(nextText, TextRange(nextCursor)))
+                if (correction != null) autocorrect.onCorrectionApplied(correction, "\n")
             },
             onMoveCursor = { delta ->
                 autocorrect.cancelPending()

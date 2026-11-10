@@ -16,7 +16,7 @@ class KeyboardLayoutsTest {
         val scenarios = listOf(
             KeyboardLang.CHUVASH to ChuvashLayoutPreset.BALANCED_26,
             KeyboardLang.CHUVASH to ChuvashLayoutPreset.HEX_4ROW,
-            KeyboardLang.CHUVASH to ChuvashLayoutPreset.FULL_28,
+            KeyboardLang.CHUVASH to ChuvashLayoutPreset.RUSSIAN_35,
             KeyboardLang.RUSSIAN to ChuvashLayoutPreset.BALANCED_26,
             KeyboardLang.LATINA to ChuvashLayoutPreset.BALANCED_26,
             KeyboardLang.GREEK to ChuvashLayoutPreset.BALANCED_26
@@ -220,7 +220,74 @@ class KeyboardLayoutsTest {
         assertTrue(prefs.swipeUpFirstVariant)
         assertTrue(prefs.showKeyPressPopup)
         assertTrue(prefs.compactLandscape)
+        assertTrue("Autocorrect is promoted from experiments and on by default", prefs.autocorrectEnabled)
         assertEquals("obsidian_forest", KesjePalettes.byId("non_existent_palette").id)
+    }
+
+    @Test
+    fun chuvashPresets_balanced26AndRussian35_matchExactRowShapesAndDebugGating() {
+        val balanced = KeyboardLayouts.getDefaultRows(KeyboardLang.CHUVASH, ChuvashLayoutPreset.BALANCED_26)
+        assertEquals(listOf(10, 9, 7), balanced.map { it.size })
+        assertEquals(26, balanced.flatten().toSet().size)
+
+        val russian35 = KeyboardLayouts.getDefaultRows(KeyboardLang.CHUVASH, ChuvashLayoutPreset.RUSSIAN_35)
+        assertEquals(listOf(12, 12, 11), russian35.map { it.size })
+        val flat35 = russian35.flatten()
+        assertEquals("RUSSIAN_35 must contain 35 distinct keys", 35, flat35.toSet().size)
+        val ruKeys = KeyboardLayouts.getDefaultRows(KeyboardLang.RUSSIAN).flatten()
+        assertTrue("RUSSIAN_35 must include all 31 standard Russian keys", flat35.containsAll(ruKeys))
+        assertTrue("RUSSIAN_35 must include all 4 Chuvash letters", flat35.containsAll(listOf("ӑ", "ӗ", "ҫ", "ӳ")))
+
+        assertEquals(
+            listOf(ChuvashLayoutPreset.BALANCED_26, ChuvashLayoutPreset.RUSSIAN_35),
+            ChuvashLayoutPreset.availablePresets(isDebugBuild = false)
+        )
+        assertEquals(
+            listOf(ChuvashLayoutPreset.BALANCED_26, ChuvashLayoutPreset.RUSSIAN_35, ChuvashLayoutPreset.HEX_4ROW),
+            ChuvashLayoutPreset.availablePresets(isDebugBuild = true)
+        )
+        assertEquals(ChuvashLayoutPreset.RUSSIAN_35, ChuvashLayoutPreset.resolve("full_28", isDebugBuild = false))
+        assertEquals(ChuvashLayoutPreset.BALANCED_26, ChuvashLayoutPreset.resolve("hex_4row", isDebugBuild = false))
+        assertEquals(ChuvashLayoutPreset.HEX_4ROW, ChuvashLayoutPreset.resolve("hex_4row", isDebugBuild = true))
+    }
+
+    @Test
+    fun sanitizedForBuild_enforcesReferenceGeometryAndDisablesHexInReleaseOnly() {
+        val hexRows = KeyboardLayouts.getDefaultRows(KeyboardLang.CHUVASH, ChuvashLayoutPreset.HEX_4ROW)
+        val debugCustomized = KeyboardPreferences(
+            paletteId = "sage",
+            chuvashPreset = ChuvashLayoutPreset.HEX_4ROW.id,
+            keyHeightDp = 62f,
+            keyCornerRadiusDp = 22f,
+            keyGapHDp = 8f,
+            keyGapVDp = 12f,
+            fontSizeSp = 19f,
+            bottomInsetDp = 34f,
+            longPressDelayMs = 220,
+            hexagonalGrid = true,
+            customRowsByLang = mapOf(KeyboardLang.CHUVASH to hexRows)
+        )
+
+        // В Debug-сборке соты и ползунки размеров полностью сохраняются
+        val inDebug = debugCustomized.sanitizedForBuild(isDebugBuild = true)
+        assertTrue(inDebug.hexagonalGrid)
+        assertEquals(62f, inDebug.keyHeightDp, 0.001f)
+        assertEquals(19f, inDebug.fontSizeSp, 0.001f)
+        assertEquals(4, inDebug.rowsFor(KeyboardLang.CHUVASH, isDebugBuild = true).size)
+
+        // В Release-сборке соты и 5 параметров геометрии приводятся к эталону, а палитра и отступ сохраняются
+        val inRelease = debugCustomized.sanitizedForBuild(isDebugBuild = false)
+        assertFalse(inRelease.hexagonalGrid)
+        assertEquals(ChuvashLayoutPreset.BALANCED_26.id, inRelease.chuvashPreset)
+        assertEquals(50f, inRelease.keyHeightDp, 0.001f)
+        assertEquals(14f, inRelease.keyCornerRadiusDp, 0.001f)
+        assertEquals(3f, inRelease.keyGapHDp, 0.001f)
+        assertEquals(7f, inRelease.keyGapVDp, 0.001f)
+        assertEquals(26f, inRelease.fontSizeSp, 0.001f)
+        assertEquals("sage", inRelease.paletteId)
+        assertEquals(34f, inRelease.bottomInsetDp, 0.001f)
+        assertEquals(220, inRelease.longPressDelayMs)
+        assertEquals(3, inRelease.rowsFor(KeyboardLang.CHUVASH, isDebugBuild = false).size)
     }
 
     @Test
@@ -581,8 +648,9 @@ class KeyboardLayoutsTest {
         val noNumRow = prefs.copy(showNumberRow = false)
         assertEquals(228f, KeyboardLayouts.computeKeyboardBodyHeightDp(noNumRow, alphaRowCount = 3), 0.001f)
 
-        // В режиме сот Hex: 50 * 3.4 + 3 (gap) + 50 (нижний ряд) = 223 dp
+        // В режиме сот Hex (только Debug): 50 * 3.4 + 3 (gap) + 50 (нижний ряд) = 223 dp
         val hexPrefs = prefs.copy(hexagonalGrid = true)
-        assertEquals(223f, KeyboardLayouts.computeKeyboardBodyHeightDp(hexPrefs, alphaRowCount = 4), 0.001f)
+        assertEquals(223f, KeyboardLayouts.computeKeyboardBodyHeightDp(hexPrefs, alphaRowCount = 4, isDebugBuild = true), 0.001f)
+        assertEquals(285f, KeyboardLayouts.computeKeyboardBodyHeightDp(hexPrefs, alphaRowCount = 3, isDebugBuild = false), 0.001f)
     }
 }

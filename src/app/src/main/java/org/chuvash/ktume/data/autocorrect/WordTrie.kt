@@ -172,23 +172,6 @@ class WordTrie private constructor(
             }
             return Builder(words.toTypedArray(), wordCounts.copyOf(words.size)).build()
         }
-
-        /**
-         * Разбирает словарь в формате `слово<TAB>частота` (строки `#` — комментарии).
-         * Строки без частоты получают частоту `1`.
-         */
-        fun parseTsv(lines: Sequence<String>): Map<String, Int> {
-            val result = HashMap<String, Int>()
-            for (raw in lines) {
-                val line = raw.trim()
-                if (line.isEmpty() || line.startsWith("#")) continue
-                val tab = line.indexOf('\t')
-                val word = if (tab < 0) line else line.substring(0, tab)
-                val count = if (tab < 0) 1 else line.substring(tab + 1).trim().toIntOrNull() ?: continue
-                if (word.isNotEmpty()) result[word] = count
-            }
-            return result
-        }
     }
 
     /** Однопроходная сборка по отсортированному списку: дети каждого узла выделяются одним блоком. */

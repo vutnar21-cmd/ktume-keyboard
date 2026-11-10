@@ -55,7 +55,7 @@ internal fun playKeypressSound(audioManager: AudioManager?, prefs: KeyboardPrefe
  * - удаляет целые графемные кластеры Unicode, выделенный текст и слова (не пробивая переводы строк `\n`),
  *   а в пустых полях и полях `TYPE_NULL` отправляет `KEYCODE_DEL` / `KEYCODE_ENTER`;
  * - запоминает выбранную раскладку и синхронизирует её с системным подтипом IME;
- * - эксперимент «автозамена»: исправляет слово перед разделителем и откатывает исправление первым `⌫`
+ * - автозамена: исправляет опечатки и поднимает имена собственные перед разделителем с откатом первым `⌫`
  *   ([AutocorrectSession], [AutocorrectEngine]);
  * - обеспечивает тактильный виброотклик, микро-тик жестов, звук нажатия и выбор системного метода ввода.
  */
@@ -77,7 +77,7 @@ class KesjeImeService : InputMethodService(), LifecycleOwner, ViewModelStoreOwne
 
     private var lastFieldSignature: String? = null
 
-    /** Автозамена в текущем поле: исправление по разделителю и откат первым `⌫` (эксперимент). */
+    /** Автозамена в текущем поле: исправление по разделителю и откат первым `⌫`. */
     private val autocorrect = AutocorrectSession()
 
     override fun onCreate() {
@@ -108,6 +108,9 @@ class KesjeImeService : InputMethodService(), LifecycleOwner, ViewModelStoreOwne
 
     override fun onStartInputView(info: EditorInfo?, restarting: Boolean) {
         super.onStartInputView(info, restarting)
+        if (keyboardView != null && lifecycleRegistry.currentState == Lifecycle.State.STARTED) {
+            lifecycleRegistry.handleLifecycleEvent(Lifecycle.Event.ON_RESUME)
+        }
         val sig = computeFieldSignature(info)
         val fieldChanged = sig != lastFieldSignature
         lastFieldSignature = sig
@@ -116,6 +119,13 @@ class KesjeImeService : InputMethodService(), LifecycleOwner, ViewModelStoreOwne
             PreferencesState.inputSessionId.value++
             autocorrect.reset()
         }
+    }
+
+    override fun onFinishInputView(finishingInput: Boolean) {
+        if (lifecycleRegistry.currentState == Lifecycle.State.RESUMED) {
+            lifecycleRegistry.handleLifecycleEvent(Lifecycle.Event.ON_PAUSE)
+        }
+        super.onFinishInputView(finishingInput)
     }
 
     override fun onUpdateSelection(
@@ -205,22 +215,13 @@ class KesjeImeService : InputMethodService(), LifecycleOwner, ViewModelStoreOwne
         }
     }
 
-    /** Эксперимент «автозаглавные имена собственные»: перед вставкой пробела поднимает регистр имени из списка. */
-    private fun capitalizeNameBeforeCursor(ic: InputConnection) {
-        val before = ic.getTextBeforeCursor(64, 0)?.toString().orEmpty()
-        val word = KeyboardLayouts.extractCurrentWordBeforeCursor(before)
-        val fixed = ChuvashNames.capitalizeIfName(word) ?: return
-        ic.deleteSurroundingText(word.length, 0)
-        ic.commitText(fixed, 1)
-    }
-
     /**
-     * Эксперимент «автозамена»: исправление слова перед курсором перед вводом разделителя [separator].
+     * Автозамена слова перед курсором перед вводом разделителя [separator].
      * Только в полях, которые допускают автозамену ([Autocorrector.isFieldAllowed]), и без выделения.
      */
     private fun findAutocorrection(ic: InputConnection, prefs: KeyboardPreferences, separator: String): Autocorrector.Correction? {
         val inputType = currentInputEditorInfo?.inputType ?: EditorInfo.TYPE_NULL
-        if (!prefs.experimentalAutocorrect || !Autocorrector.isFieldAllowed(inputType) ||
+        if (!prefs.autocorrectEnabled || !Autocorrector.isFieldAllowed(inputType) ||
             !ic.getSelectedText(0).isNullOrEmpty()
         ) {
             autocorrect.cancelPending()
@@ -306,8 +307,8 @@ class KesjeImeService : InputMethodService(), LifecycleOwner, ViewModelStoreOwne
             val isPasswordField by PreferencesState.isPasswordField.collectAsState()
             val activeLang by PreferencesState.activeLang.collectAsState()
 
-            // Словари автозамены грузятся в фоне, только когда эксперимент включён
-            LaunchedEffect(prefs.experimentalAutocorrect, prefs.autocorrectLangs) {
+            // Словари автозамены грузятся в фоне, только когда автозамена включена
+            LaunchedEffect(prefs.autocorrectEnabled, prefs.autocorrectLangs) {
                 AutocorrectEngine.sync(this@KesjeImeService, prefs)
             }
 
@@ -329,14 +330,12 @@ class KesjeImeService : InputMethodService(), LifecycleOwner, ViewModelStoreOwne
                     triggerFeedback(prefs)
                     val ic = currentInputConnection
                     val correction = ic?.let { findAutocorrection(it, prefs, text) }
-                    val capitalizeName = text == " " && prefs.experimentalCapitalizeNames
-                    if (ic != null && (correction != null || capitalizeName)) {
+                    if (ic != null && correction != null) {
                         ic.batchEdit {
-                            if (correction != null) applyCorrection(correction)
-                            if (capitalizeName) capitalizeNameBeforeCursor(this)
+                            applyCorrection(correction)
                             commitText(text, 1)
                         }
-                        if (correction != null) autocorrect.onCorrectionApplied(correction, text)
+                        autocorrect.onCorrectionApplied(correction, text)
                     } else {
                         ic?.commitText(text, 1)
                     }

@@ -40,6 +40,7 @@ import kotlin.math.roundToInt
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import org.chuvash.ktume.BuildConfig
 import org.chuvash.ktume.data.KeyboardLayouts
 import org.chuvash.ktume.data.KeyboardPreferences
 import org.chuvash.ktume.ui.theme.KesjeFontFamily
@@ -80,17 +81,16 @@ private fun rememberHexPaints(
     }
 }
 
-/** Создаёт шестиугольный путь (pointy-top hexagon) для паркетного замощения. */
-private fun buildHexPath(w: Float, h: Float): Path {
-    return Path().apply {
-        moveTo(w * 0.5f, 0f)
-        lineTo(w, h * 0.26f)
-        lineTo(w, h * 0.74f)
-        lineTo(w * 0.5f, h)
-        lineTo(0f, h * 0.74f)
-        lineTo(0f, h * 0.26f)
-        close()
-    }
+/** Заполняет шестиугольный путь (pointy-top hexagon) для паркетного замощения без новой аллокации `Path`. */
+private fun fillHexPath(path: Path, w: Float, h: Float) {
+    path.reset()
+    path.moveTo(w * 0.5f, 0f)
+    path.lineTo(w, h * 0.26f)
+    path.lineTo(w, h * 0.74f)
+    path.lineTo(w * 0.5f, h)
+    path.lineTo(0f, h * 0.74f)
+    path.lineTo(0f, h * 0.26f)
+    path.close()
 }
 
 /**
@@ -108,12 +108,14 @@ internal fun rememberKeySurfaceModifier(
     addShadow: Boolean = false
 ): Modifier {
     val density = LocalDensity.current
-    return if (useHexShape) {
+    return if (BuildConfig.DEBUG && useHexShape) {
         val hexCornerPx = with(density) { (cornerRadiusDp * 0.45f).coerceIn(4f, 9f).dp.toPx() }
         val hexStrokePx = with(density) { 1.4.dp.toPx() }
         val hexPaints = rememberHexPaints(hexCornerPx, hexStrokePx, boardBg.toArgb())
+        val cachedPath = remember { Path() }
         Modifier.drawBehind {
-            val androidPath = buildHexPath(size.width, size.height).asAndroidPath()
+            fillHexPath(cachedPath, size.width, size.height)
+            val androidPath = cachedPath.asAndroidPath()
             hexPaints.fillPaint.color = bg.toArgb()
             drawIntoCanvas { canvas ->
                 canvas.nativeCanvas.drawPath(androidPath, hexPaints.fillPaint)
@@ -141,7 +143,7 @@ internal fun KeyButton(
     palette: KeyboardPalette,
     modifier: Modifier = Modifier,
     colFraction: Float = 0.5f,
-    useHexShape: Boolean = prefs.hexagonalGrid,
+    useHexShape: Boolean = BuildConfig.DEBUG && prefs.hexagonalGrid,
     customHeight: Dp? = null,
     customFontSizeSp: Float? = null,
     gapPadH: Dp = 0.dp,
@@ -348,7 +350,9 @@ internal fun KeyButton(
                 color = palette.keyText,
                 fontFamily = KesjeFontFamily,
                 fontSize = (customFontSizeSp ?: prefs.fontSizeSp).sp,
-                fontWeight = FontWeight.Bold
+                fontWeight = FontWeight.Bold,
+                maxLines = 1,
+                softWrap = false
             )
 
             val isSwipeArmed = showSwipeUpPreview && primaryVariant != null

@@ -22,7 +22,7 @@ class AutocorrectorTest {
         mapOf(
             "привет" to 5000, "приветик" to 40, "сегодня" to 8000, "что" to 90000, "кто" to 30000,
             "был" to 20000, "бил" to 300, "класс" to 900, "спасибо" to 7000, "мандарин" to 50,
-            "пизда" to 9000, "пицца" to 10
+            "пизда" to 9000, "пицца" to 10, "иван" to 6000, "роман" to 4000
         )
     )
     private val cv = WordTrie.build(
@@ -45,7 +45,7 @@ class AutocorrectorTest {
         assertEquals(40, ru.countOf("приветик"))
         assertEquals(0, ru.countOf("прив"))
         assertFalse("приветики" in ru)
-        assertEquals(12, ru.size)
+        assertEquals(14, ru.size)
     }
 
     @Test
@@ -224,5 +224,29 @@ class AutocorrectorTest {
         // Не разделитель — исправления нет
         assertNull(session.correctionBeforeSeparator("превет", "а", corrector, "ru", emptySet(), costs))
         assertNull(session.correctionBeforeSeparator("превет", " ", null, "ru", emptySet(), costs))
+    }
+
+    @Test
+    fun capitalizesProperNamesAndSupportsBackspaceRevert() {
+        // Строчное имя поднимается в заглавное, даже если есть в словаре
+        assertEquals("Иван", fix("иван"))
+        assertEquals("Азамат", fix("азамат"))
+        // Опечатка в имени сразу исправляется с заглавной буквы
+        assertEquals("Иван", fix("ивна"))
+        // Уже заглавное имя и нарицательный омоним не трогаются
+        assertNull(fix("Иван"))
+        assertNull(fix("Азамат"))
+        assertNull(fix("роман"))
+        // Личный словарь отключает автозаглавную имени
+        assertNull(fix("иван", personal = setOf("иван")))
+
+        // Полный цикл с откатом через ⌫
+        val session = AutocorrectSession()
+        val c = session.correctionBeforeSeparator("Привет иван", " ", corrector, "ru", emptySet(), costs)
+        assertEquals("Иван", c?.replacement)
+        session.onCorrectionApplied(c!!, " ")
+        val revert = session.takeRevert("Привет Иван ")
+        assertEquals("иван", revert?.original)
+        assertNull(session.correctionBeforeSeparator("снова иван", " ", corrector, "ru", emptySet(), costs))
     }
 }

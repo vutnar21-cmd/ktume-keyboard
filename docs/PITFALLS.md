@@ -10,6 +10,7 @@
 - **Файл `src/gradle/gradle-daemon-jvm.properties` удалён намеренно:** он задавал `toolchainVersion=25`, из-за чего `lintDebug` падал на `> 25.0.3` в `JavaVersion.parse`, игнорируя `org.gradle.java.home` → никогда не создавать его заново (в том числе через `updateDaemonJvm`); JDK 21 задаётся в пользовательском `~/.gradle/gradle.properties`.
 - **Ключ релиза `ktume-release.jks` и Obtainium:** SHA-256 отпечаток сертификата опубликован в `README.md` и жёстко сверяется Obtainium при обновлениях → всегда хранить резервную копию `.jks` и паролей **вне** рабочей папки проекта.
 - **Словари `src/app/src/main/assets/dict/cv.tsv` и `ru.tsv`:** не править вручную → пересобирать только скриптом `tools/dictionaries/build_dictionaries.py` (в шапке — источники и контрольные суммы; `ru.tsv` под CC BY-SA 4.0 отражён в `docs/THIRD_PARTY_NOTICES.md`).
+- **Сборка в `git worktree` и `ANDROID_HOME`:** файл `src/local.properties` добавлен в `.gitignore` и не переносится в новые worktree → при запуске Gradle из worktree задавать `$env:ANDROID_HOME = "$env:LOCALAPPDATA\Android\Sdk"`.
 
 ## Хранение настроек (Jetpack DataStore)
 

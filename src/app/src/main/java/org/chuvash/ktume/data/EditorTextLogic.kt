@@ -2,6 +2,7 @@ package org.chuvash.ktume.data
 
 import android.view.inputmethod.EditorInfo
 import java.text.BreakIterator
+import org.chuvash.ktume.BuildConfig
 
 /**
  * МОДУЛЬ: EditorTextLogic.kt — чистые функции обработки текста, Unicode-графем,
@@ -265,8 +266,12 @@ internal object EditorTextLogic {
      * Вычисляет точную высоту рабочей области клавиатуры (под верхней полосой `36 dp`) в `dp`.
      * Используется в `EmojiPickerPage`, чтобы переключение `Буквы ⇄ Смайлики` происходило с нулевым скачком высоты.
      */
-    fun computeKeyboardBodyHeightDp(prefs: KeyboardPreferences, alphaRowCount: Int = 3): Float {
-        return if (prefs.hexagonalGrid) {
+    fun computeKeyboardBodyHeightDp(
+        prefs: KeyboardPreferences,
+        alphaRowCount: Int = 3,
+        isDebugBuild: Boolean = BuildConfig.DEBUG
+    ): Float {
+        return if (isDebugBuild && prefs.hexagonalGrid) {
             val hexRows = 4
             val hexGridHeight = prefs.keyHeightDp + (prefs.keyHeightDp * 0.80f) * (hexRows - 1)
             hexGridHeight + prefs.keyGapHDp + prefs.keyHeightDp

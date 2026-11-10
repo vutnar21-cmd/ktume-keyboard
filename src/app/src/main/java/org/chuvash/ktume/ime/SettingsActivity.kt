@@ -21,6 +21,7 @@ import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import org.chuvash.ktume.BuildConfig
 import org.chuvash.ktume.data.KeyboardLang
 import org.chuvash.ktume.data.KeyboardPreferences
 import org.chuvash.ktume.data.PreferencesRepository
@@ -185,7 +186,8 @@ class SettingsActivity : ComponentActivity() {
                                 SettingsTab.LAYOUT -> LayoutSettingsSection(
                                     prefs = prefs,
                                     palette = activePalette,
-                                    savePrefs = savePrefs
+                                    savePrefs = savePrefs,
+                                    onResetSelectedCell = { selectedCell = null }
                                 )
 
                                 SettingsTab.APPEARANCE -> AppearanceSettingsSection(
@@ -248,8 +250,13 @@ class SettingsActivity : ComponentActivity() {
                             },
                             text = {
                                 Text(
-                                    "Будут потеряны пользовательские раскладки всех языков, выбранная палитра " +
-                                        "и настройки геометрии. Действие необратимо.",
+                                    text = if (BuildConfig.DEBUG) {
+                                        "Будут сброшены пользовательские раскладки, выбранная палитра, " +
+                                            "геометрия клавиш и параметры ввода. Личный словарь автозамены сохранится."
+                                    } else {
+                                        "Будут сброшены пользовательские раскладки, выбранная палитра " +
+                                            "и параметры ввода. Личный словарь автозамены сохранится."
+                                    },
                                     fontFamily = KesjeFontFamily,
                                     fontSize = 13.sp
                                 )

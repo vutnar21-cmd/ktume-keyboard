@@ -2,12 +2,15 @@ package org.chuvash.ktume.data.autocorrect
 
 import android.view.inputmethod.EditorInfo
 import kotlin.math.ln
+import org.chuvash.ktume.data.ChuvashNames
 
 /**
- * МОДУЛЬ: Autocorrector.kt — решение «исправлять ли набранное слово и на что» (эксперимент, задача 013).
+ * МОДУЛЬ: Autocorrector.kt — решение «исправлять ли набранное слово и на что».
  *
  * Принципы (чтобы не ломать чувашские слова и не раздражать):
- * - слово, найденное в любом подключённом словаре (чувашском, русском) или в личном словаре, не трогается;
+ * - слово, найденное в любом подключённом словаре (чувашском, русском) или в личном словаре, не трогается
+ *   (исключение: имя собственное из [ChuvashNames], набранное со строчной буквы и не внесённое в личный словарь,
+ *   поднимается с первой заглавной и поддерживает откат первым `⌫`);
  * - исправляются только слова от [MIN_WORD_LENGTH] букв в нижнем регистре или с заглавной первой;
  *   ВСЕ ЗАГЛАВНЫЕ (аббревиатуры) и смешанный регистр (`iPhone`) не трогаются;
  * - допустимая цена правки растёт с длиной слова ([maxCostFor]);
@@ -54,10 +57,10 @@ class Autocorrector(
         ln(it.trie.minCount.toDouble() / it.trie.totalCount.coerceAtLeast(1L))
     } ?: 0.0
 
-    /** Есть ли слово (в любом регистре) в одном из словарей. */
+    /** Есть ли слово (в любом регистре) в одном из словарей или в списке имён собственных. */
     fun isKnown(word: String): Boolean {
         val lower = word.lowercase()
-        return dictionaries.any { lower in it.trie }
+        return ChuvashNames.isName(lower) || dictionaries.any { lower in it.trie }
     }
 
     /**
@@ -75,7 +78,18 @@ class Autocorrector(
         val caseShape = caseShapeOf(typed) ?: return null
         val lower = typed.lowercase()
         if (lower.length < MIN_WORD_LENGTH || !lower.all(::isCyrillicLetter)) return null
-        if (lower in personalWords || isKnown(lower)) return null
+        if (lower in personalWords) return null
+        if (isKnown(lower)) {
+            if (caseShape == CaseShape.LOWER) {
+                val capName = ChuvashNames.capitalizeIfName(lower)
+                if (capName != null) {
+                    val lang = activeLang?.takeIf { code -> dictionaries.any { it.lang == code } }
+                        ?: dictionaries.first().lang
+                    return Correction(typed, capName, lang)
+                }
+            }
+            return null
+        }
 
         val maxCost = maxCostFor(lower.length)
         val best = HashMap<String, Scored>()
@@ -95,7 +109,11 @@ class Autocorrector(
         if (top.score - unknownWordScore < tuning.minGain) return null
         val runnerUp = ranked.getOrNull(1)
         if (runnerUp != null && top.score - runnerUp.score < tuning.minMargin) return null
-        return Correction(typed, applyCase(top.word, caseShape), top.lang)
+        val replacement = when (caseShape) {
+            CaseShape.LOWER -> ChuvashNames.capitalizeIfName(top.word) ?: top.word
+            CaseShape.TITLE -> applyCase(top.word, CaseShape.TITLE)
+        }
+        return Correction(typed, replacement, top.lang)
     }
 
     companion object {

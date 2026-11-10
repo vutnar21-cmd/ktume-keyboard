@@ -6,7 +6,7 @@ import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
-/** Тесты экспериментальной фичи «автозаглавные имена собственные». */
+/** Тесты базового списка имён собственных для автозамены. */
 class ChuvashNamesTest {
 
     @Test
@@ -17,10 +17,14 @@ class ChuvashNamesTest {
     }
 
     @Test
-    fun capitalizeIfName_ignoresOrdinaryWords() {
+    fun capitalizeIfName_ignoresOrdinaryWordsAndCommonNounHomonyms() {
         assertNull(ChuvashNames.capitalizeIfName("хула"))
         assertNull(ChuvashNames.capitalizeIfName("шкул"))
         assertNull(ChuvashNames.capitalizeIfName(""))
+        for (homonym in listOf("вера", "любовь", "надежда", "роман")) {
+            assertFalse("Homonym '$homonym' must not be auto-capitalized", ChuvashNames.isName(homonym))
+            assertNull(ChuvashNames.capitalizeIfName(homonym))
+        }
     }
 
     @Test

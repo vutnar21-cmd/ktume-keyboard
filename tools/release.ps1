@@ -192,7 +192,7 @@ try {
 
     $existingLocalTag = (& git tag -l $tagName)
     if ($existingLocalTag) {
-        $msg = "Git tag '$tagName' already exists locally. Bump versionCode and versionName in app/build.gradle.kts before releasing."
+        $msg = "Git tag '$tagName' already exists locally. Bump versionCode and versionName in src/app/build.gradle.kts before releasing."
         if ($DryRun) { Write-Warn "$msg (allowed in -DryRun)" } else { Fail $msg }
     }
 
@@ -200,7 +200,7 @@ try {
         $existingRemoteTag = (& git ls-remote --tags origin "refs/tags/$tagName")
         if ($LASTEXITCODE -ne 0) { Fail "Failed to query remote tags on 'origin'." }
         if ($existingRemoteTag) {
-            Fail "Git tag '$tagName' already exists on origin. Bump versionCode and versionName in app/build.gradle.kts."
+            Fail "Git tag '$tagName' already exists on origin. Bump versionCode and versionName in src/app/build.gradle.kts."
         }
     }
 

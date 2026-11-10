@@ -3,6 +3,7 @@ package org.chuvash.ktume.ime
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
@@ -47,6 +48,11 @@ internal fun EnterKeyAction.toIconType(): KesjeIconType = when (this) {
     EnterKeyAction.DONE -> KesjeIconType.DONE
 }
 
+private val SETTINGS_GEAR_DIRS = arrayOf(
+    Offset(0f, -1f), Offset(0f, 1f), Offset(-1f, 0f), Offset(1f, 0f),
+    Offset(0.7f, 0.7f), Offset(-0.7f, -0.7f), Offset(0.7f, -0.7f), Offset(-0.7f, 0.7f)
+)
+
 @Composable
 fun KesjeVectorIcon(
     type: KesjeIconType,
@@ -54,6 +60,7 @@ fun KesjeVectorIcon(
     modifier: Modifier = Modifier,
     size: Dp = 18.dp
 ) {
+    val path = remember { Path() }
     Canvas(modifier = modifier.size(size)) {
         val w = this.size.width
         val h = this.size.height
@@ -65,17 +72,16 @@ fun KesjeVectorIcon(
 
         when (type) {
             KesjeIconType.SHIFT, KesjeIconType.CAPS_LOCK -> {
-                val p = Path().apply {
-                    moveTo(w * 0.50f, h * 0.14f)
-                    lineTo(w * 0.86f, h * 0.50f)
-                    lineTo(w * 0.65f, h * 0.50f)
-                    lineTo(w * 0.65f, h * 0.76f)
-                    lineTo(w * 0.35f, h * 0.76f)
-                    lineTo(w * 0.35f, h * 0.50f)
-                    lineTo(w * 0.14f, h * 0.50f)
-                    close()
-                }
-                drawPath(p, color = tint, style = stroke)
+                path.reset()
+                path.moveTo(w * 0.50f, h * 0.14f)
+                path.lineTo(w * 0.86f, h * 0.50f)
+                path.lineTo(w * 0.65f, h * 0.50f)
+                path.lineTo(w * 0.65f, h * 0.76f)
+                path.lineTo(w * 0.35f, h * 0.76f)
+                path.lineTo(w * 0.35f, h * 0.50f)
+                path.lineTo(w * 0.14f, h * 0.50f)
+                path.close()
+                drawPath(path, color = tint, style = stroke)
                 if (type == KesjeIconType.CAPS_LOCK) {
                     drawLine(
                         color = tint,
@@ -88,32 +94,27 @@ fun KesjeVectorIcon(
             }
 
             KesjeIconType.BACKSPACE -> {
-                val p = Path().apply {
-                    moveTo(w * 0.34f, h * 0.22f)
-                    lineTo(w * 0.88f, h * 0.22f)
-                    lineTo(w * 0.88f, h * 0.78f)
-                    lineTo(w * 0.34f, h * 0.78f)
-                    lineTo(w * 0.12f, h * 0.50f)
-                    close()
-                }
-                drawPath(p, color = tint, style = stroke)
+                path.reset()
+                path.moveTo(w * 0.34f, h * 0.22f)
+                path.lineTo(w * 0.88f, h * 0.22f)
+                path.lineTo(w * 0.88f, h * 0.78f)
+                path.lineTo(w * 0.34f, h * 0.78f)
+                path.lineTo(w * 0.12f, h * 0.50f)
+                path.close()
+                drawPath(path, color = tint, style = stroke)
                 drawLine(tint, Offset(w * 0.46f, h * 0.38f), Offset(w * 0.68f, h * 0.62f), stroke.width, StrokeCap.Round)
                 drawLine(tint, Offset(w * 0.68f, h * 0.38f), Offset(w * 0.46f, h * 0.62f), stroke.width, StrokeCap.Round)
             }
 
             KesjeIconType.ENTER -> {
-                val p = Path().apply {
-                    moveTo(w * 0.78f, h * 0.22f)
-                    lineTo(w * 0.78f, h * 0.58f)
-                    lineTo(w * 0.22f, h * 0.58f)
-                }
-                drawPath(p, color = tint, style = stroke)
-                val arrow = Path().apply {
-                    moveTo(w * 0.38f, h * 0.40f)
-                    lineTo(w * 0.20f, h * 0.58f)
-                    lineTo(w * 0.38f, h * 0.76f)
-                }
-                drawPath(arrow, color = tint, style = stroke)
+                path.reset()
+                path.moveTo(w * 0.78f, h * 0.22f)
+                path.lineTo(w * 0.78f, h * 0.58f)
+                path.lineTo(w * 0.22f, h * 0.58f)
+                path.moveTo(w * 0.38f, h * 0.40f)
+                path.lineTo(w * 0.20f, h * 0.58f)
+                path.lineTo(w * 0.38f, h * 0.76f)
+                drawPath(path, color = tint, style = stroke)
             }
 
             KesjeIconType.SEARCH -> {
@@ -130,35 +131,32 @@ fun KesjeVectorIcon(
             }
 
             KesjeIconType.SEND -> {
-                val p = Path().apply {
-                    moveTo(w * 0.16f, h * 0.22f)
-                    lineTo(w * 0.86f, h * 0.50f)
-                    lineTo(w * 0.16f, h * 0.78f)
-                    lineTo(w * 0.30f, h * 0.50f)
-                    close()
-                }
-                drawPath(p, color = tint, style = stroke)
+                path.reset()
+                path.moveTo(w * 0.16f, h * 0.22f)
+                path.lineTo(w * 0.86f, h * 0.50f)
+                path.lineTo(w * 0.16f, h * 0.78f)
+                path.lineTo(w * 0.30f, h * 0.50f)
+                path.close()
+                drawPath(path, color = tint, style = stroke)
                 drawLine(tint, Offset(w * 0.30f, h * 0.50f), Offset(w * 0.82f, h * 0.50f), stroke.width, StrokeCap.Round)
             }
 
             KesjeIconType.NEXT -> {
                 drawLine(tint, Offset(w * 0.14f, h * 0.50f), Offset(w * 0.68f, h * 0.50f), stroke.width, StrokeCap.Round)
-                val head = Path().apply {
-                    moveTo(w * 0.46f, h * 0.28f)
-                    lineTo(w * 0.68f, h * 0.50f)
-                    lineTo(w * 0.46f, h * 0.72f)
-                }
-                drawPath(head, color = tint, style = stroke)
+                path.reset()
+                path.moveTo(w * 0.46f, h * 0.28f)
+                path.lineTo(w * 0.68f, h * 0.50f)
+                path.lineTo(w * 0.46f, h * 0.72f)
+                drawPath(path, color = tint, style = stroke)
                 drawLine(tint, Offset(w * 0.84f, h * 0.24f), Offset(w * 0.84f, h * 0.76f), stroke.width, StrokeCap.Round)
             }
 
             KesjeIconType.DONE -> {
-                val check = Path().apply {
-                    moveTo(w * 0.18f, h * 0.52f)
-                    lineTo(w * 0.42f, h * 0.76f)
-                    lineTo(w * 0.84f, h * 0.26f)
-                }
-                drawPath(check, color = tint, style = stroke)
+                path.reset()
+                path.moveTo(w * 0.18f, h * 0.52f)
+                path.lineTo(w * 0.42f, h * 0.76f)
+                path.lineTo(w * 0.84f, h * 0.26f)
+                drawPath(path, color = tint, style = stroke)
             }
 
             KesjeIconType.GLOBE -> {
@@ -200,22 +198,17 @@ fun KesjeVectorIcon(
                 drawCircle(color = tint, radius = r, center = c, style = stroke)
                 drawCircle(color = tint, radius = stroke.width * 0.65f, center = Offset(w * 0.37f, h * 0.42f))
                 drawCircle(color = tint, radius = stroke.width * 0.65f, center = Offset(w * 0.63f, h * 0.42f))
-                val smile = Path().apply {
-                    moveTo(w * 0.35f, h * 0.58f)
-                    quadraticTo(w * 0.50f, h * 0.72f, w * 0.65f, h * 0.58f)
-                }
-                drawPath(smile, color = tint, style = stroke)
+                path.reset()
+                path.moveTo(w * 0.35f, h * 0.58f)
+                path.quadraticTo(w * 0.50f, h * 0.72f, w * 0.65f, h * 0.58f)
+                drawPath(path, color = tint, style = stroke)
             }
 
             KesjeIconType.SETTINGS -> {
                 val c = Offset(w * 0.5f, h * 0.5f)
                 drawCircle(color = tint, radius = w * 0.16f, center = c, style = stroke)
                 drawCircle(color = tint, radius = w * 0.32f, center = c, style = stroke)
-                val dirs = listOf(
-                    Offset(0f, -1f), Offset(0f, 1f), Offset(-1f, 0f), Offset(1f, 0f),
-                    Offset(0.7f, 0.7f), Offset(-0.7f, -0.7f), Offset(0.7f, -0.7f), Offset(-0.7f, 0.7f)
-                )
-                dirs.forEach { d ->
+                SETTINGS_GEAR_DIRS.forEach { d ->
                     drawLine(
                         color = tint,
                         start = Offset(c.x + d.x * w * 0.31f, c.y + d.y * h * 0.31f),
@@ -243,22 +236,20 @@ fun KesjeVectorIcon(
 
             KesjeIconType.ARROW_LEFT -> {
                 drawLine(tint, Offset(w * 0.80f, h * 0.50f), Offset(w * 0.20f, h * 0.50f), stroke.width, StrokeCap.Round)
-                val head = Path().apply {
-                    moveTo(w * 0.44f, h * 0.26f)
-                    lineTo(w * 0.20f, h * 0.50f)
-                    lineTo(w * 0.44f, h * 0.74f)
-                }
-                drawPath(head, color = tint, style = stroke)
+                path.reset()
+                path.moveTo(w * 0.44f, h * 0.26f)
+                path.lineTo(w * 0.20f, h * 0.50f)
+                path.lineTo(w * 0.44f, h * 0.74f)
+                drawPath(path, color = tint, style = stroke)
             }
 
             KesjeIconType.ARROW_RIGHT -> {
                 drawLine(tint, Offset(w * 0.20f, h * 0.50f), Offset(w * 0.80f, h * 0.50f), stroke.width, StrokeCap.Round)
-                val head = Path().apply {
-                    moveTo(w * 0.56f, h * 0.26f)
-                    lineTo(w * 0.80f, h * 0.50f)
-                    lineTo(w * 0.56f, h * 0.74f)
-                }
-                drawPath(head, color = tint, style = stroke)
+                path.reset()
+                path.moveTo(w * 0.56f, h * 0.26f)
+                path.lineTo(w * 0.80f, h * 0.50f)
+                path.lineTo(w * 0.56f, h * 0.74f)
+                drawPath(path, color = tint, style = stroke)
             }
         }
     }

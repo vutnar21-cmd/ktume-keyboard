@@ -9,6 +9,7 @@ import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import kotlin.math.max
+import org.chuvash.ktume.BuildConfig
 import org.chuvash.ktume.data.EnterKeyAction
 import org.chuvash.ktume.data.KeyboardLang
 import org.chuvash.ktume.data.KeyboardLayouts
@@ -20,68 +21,14 @@ import org.chuvash.ktume.ui.theme.KesjePalettes
  * МОДУЛЬ: KeyboardScreen.kt — корневой экран клавиатуры.
  * Единственный экземпляр UI, общий для системного IME (`KesjeImeService`) и превью настроек.
  *
- * Держит состояние (язык, регистр `Shift`/`autoShiftArmed`, режим, оверлеи) и собирает экран из модулей:
+ * Держит состояние (язык, регистр `Shift`/`autoShiftArmed` из `ShiftStateMachine.kt`, режим, оверлеи)
+ * и собирает экран из модулей:
  * - `KeyboardRows.kt` — цифровой ряд, 3 ряда букв/символов, нижний ряд и меню раскладок `🌐`;
  * - `Keys.kt`, `FunctionalKeys.kt` — клавиши и их жесты без мёртвых зазоров;
- * - `HoneycombHexGrid.kt` — 4-рядные паркетные соты;
+ * - `HoneycombHexGrid.kt` — 4-рядные паркетные соты (только Debug-сборка);
  * - `Toolbar.kt` — однорядная верхняя полоса (`36 dp`);
  * - `EmojiPickerPage.kt`, `NumpadGridView.kt` — страницы смайликов и телефонной сетки `3 × 4`.
  */
-
-internal const val DOUBLE_TAP_WINDOW_MS = 420L
-
-internal enum class KeyboardMode {
-    LETTERS,
-    SYMBOLS_1,
-    SYMBOLS_2,
-    NUMPAD,
-    EMOJI_PAGE
-}
-
-internal enum class ShiftState {
-    OFF,
-    ONCE,
-    CAPS_LOCK
-}
-
-internal enum class ToolbarOverlay {
-    NONE,
-    CLIPBOARD
-}
-
-/**
- * Единый переход состояния клавиши `Shift` по нажатию:
- * `OFF → ONCE`, двойной тап быстрее [DOUBLE_TAP_WINDOW_MS] `ONCE → CAPS_LOCK`, повторный тап `→ OFF`.
- */
-internal fun nextShiftStateOnTap(
-    current: ShiftState,
-    nowMs: Long,
-    lastTapMs: Long
-): ShiftState = when {
-    current == ShiftState.CAPS_LOCK -> ShiftState.OFF
-    current == ShiftState.ONCE && (nowMs - lastTapMs) < DOUBLE_TAP_WINDOW_MS -> ShiftState.CAPS_LOCK
-    current == ShiftState.OFF -> ShiftState.ONCE
-    else -> ShiftState.OFF
-}
-
-/** Состояние `Shift` вместе с флагом «включён автозаглавной, а не пользователем». */
-internal data class AutoShift(val shiftState: ShiftState, val armed: Boolean)
-
-/**
- * Синхронизирует `Shift` с автозаглавной редактора при каждом обновлении его контекста:
- * взводит `ONCE`, если поле просит заглавную, а `Shift` выключен (в том числе повторно в полях
- * `CAP_CHARACTERS`), и снимает только тот `ONCE`, который включила сама автозаглавная.
- */
-internal fun resolveAutoShift(
-    current: AutoShift,
-    autoCapitalizeEnabled: Boolean,
-    shouldAutoCapitalize: Boolean
-): AutoShift = when {
-    autoCapitalizeEnabled && shouldAutoCapitalize ->
-        if (current.shiftState == ShiftState.OFF) AutoShift(ShiftState.ONCE, armed = true) else current
-    current.armed && current.shiftState == ShiftState.ONCE -> AutoShift(ShiftState.OFF, armed = false)
-    else -> current
-}
 
 @Composable
 fun KeyboardScreen(
@@ -197,20 +144,21 @@ fun KeyboardScreen(
 
     val isShifted = shiftState != ShiftState.OFF
     val enterIconType = remember(enterKeyAction) { enterKeyAction.toIconType() }
-    val baseLangRows = prefs.customRowsByLang[currentLang] ?: KeyboardLayouts.getDefaultRows(currentLang)
+    val isHexEnabled = BuildConfig.DEBUG && renderPrefs.hexagonalGrid
+    val baseLangRows = prefs.rowsFor(currentLang)
 
     val activeRows: List<List<String>> = when (keyboardMode) {
-        KeyboardMode.LETTERS -> if (prefs.hexagonalGrid) KeyboardLayouts.getHex4RowLayout(baseLangRows) else baseLangRows
+        KeyboardMode.LETTERS -> if (isHexEnabled) KeyboardLayouts.getHex4RowLayout(baseLangRows) else baseLangRows
         KeyboardMode.SYMBOLS_1 -> KeyboardLayouts.symbolsLayer1
         KeyboardMode.SYMBOLS_2 -> KeyboardLayouts.symbolsLayer2
         KeyboardMode.NUMPAD -> KeyboardLayouts.numpadRows
         KeyboardMode.EMOJI_PAGE -> emptyList()
     }
 
-    val maxCols = remember(activeRows, prefs.showNumberRow, keyboardMode, prefs.hexagonalGrid) {
+    val maxCols = remember(activeRows, prefs.showNumberRow, keyboardMode, isHexEnabled) {
         when {
             keyboardMode == KeyboardMode.NUMPAD -> 4
-            prefs.hexagonalGrid && keyboardMode == KeyboardMode.LETTERS -> {
+            isHexEnabled && keyboardMode == KeyboardMode.LETTERS -> {
                 activeRows.mapIndexed { idx, r ->
                     if (idx == activeRows.lastIndex) r.size + 2 else r.size
                 }.maxOrNull()?.coerceAtLeast(7) ?: 7
@@ -422,7 +370,7 @@ fun KeyboardScreen(
                 }
 
                 else -> {
-                    val isHexLetters = renderPrefs.hexagonalGrid && keyboardMode == KeyboardMode.LETTERS
+                    val isHexLetters = isHexEnabled && keyboardMode == KeyboardMode.LETTERS
                     if (isHexLetters) {
                         HoneycombHexGrid(
                             rows = activeRows,

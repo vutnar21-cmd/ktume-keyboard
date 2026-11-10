@@ -82,6 +82,7 @@ android {
 
     buildFeatures {
         compose = true // Включаем современный UI-фреймворк Jetpack Compose
+        buildConfig = true // Флаг BuildConfig.DEBUG скрывает соты и ползунки геометрии в release-сборке
     }
 
     compileOptions {

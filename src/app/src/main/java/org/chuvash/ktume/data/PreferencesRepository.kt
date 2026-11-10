@@ -102,8 +102,7 @@ object PreferencesRepository {
     private val KEY_DOUBLE_SPACE_COMMA = booleanPreferencesKey("double_space_comma")
     private val KEY_SHOW_HYPHEN = booleanPreferencesKey("show_hyphen_key_v2")
     private val KEY_CURSOR_ARROWS = booleanPreferencesKey("show_cursor_arrows_v1")
-    private val KEY_EXP_CAP_NAMES = booleanPreferencesKey("exp_capitalize_names_v1")
-    private val KEY_EXP_AUTOCORRECT = booleanPreferencesKey("exp_autocorrect_v1")
+    private val KEY_AUTOCORRECT = booleanPreferencesKey("autocorrect_enabled_v2")
     private val KEY_AUTOCORRECT_LANGS = stringSetPreferencesKey("autocorrect_langs_v1")
     private val KEY_AUTOCORRECT_LEARN = booleanPreferencesKey("autocorrect_learn_v1")
     /** Личный словарь автозамены: пишется отдельно от [update] и не сбрасывается кнопкой «Сбросить». */
@@ -153,8 +152,7 @@ object PreferencesRepository {
                     PreferencesState.personalWords.value = saved + PreferencesState.personalWords.value
                 }
                 if (hasPendingUserUpdate) return@launch
-                val presetId = p[KEY_CV_PRESET] ?: ChuvashLayoutPreset.BALANCED_26.id
-                val preset = ChuvashLayoutPreset.entries.find { it.id == presetId } ?: ChuvashLayoutPreset.BALANCED_26
+                val preset = ChuvashLayoutPreset.resolve(p[KEY_CV_PRESET])
                 val customMap = KeyboardLang.entries.associateWith { lang ->
                     val def = if (lang == KeyboardLang.CHUVASH) {
                         KeyboardLayouts.getDefaultRows(lang, preset)
@@ -166,7 +164,7 @@ object PreferencesRepository {
                 val defaults = KeyboardPreferences()
                 val loaded = KeyboardPreferences(
                     paletteId = p[KEY_PALETTE] ?: defaults.paletteId,
-                    chuvashPreset = presetId,
+                    chuvashPreset = preset.id,
                     keyHeightDp = p[KEY_HEIGHT] ?: defaults.keyHeightDp,
                     keyCornerRadiusDp = p[KEY_RADIUS] ?: defaults.keyCornerRadiusDp,
                     keyGapHDp = p[KEY_GAP_H] ?: p[KEY_GAP_LEGACY] ?: defaults.keyGapHDp,
@@ -188,13 +186,12 @@ object PreferencesRepository {
                     doubleSpaceComma = p[KEY_DOUBLE_SPACE_COMMA] ?: defaults.doubleSpaceComma,
                     showHyphenKey = p[KEY_SHOW_HYPHEN] ?: defaults.showHyphenKey,
                     showCursorArrows = p[KEY_CURSOR_ARROWS] ?: defaults.showCursorArrows,
-                    experimentalCapitalizeNames = p[KEY_EXP_CAP_NAMES] ?: defaults.experimentalCapitalizeNames,
-                    experimentalAutocorrect = p[KEY_EXP_AUTOCORRECT] ?: defaults.experimentalAutocorrect,
+                    autocorrectEnabled = p[KEY_AUTOCORRECT] ?: defaults.autocorrectEnabled,
                     autocorrectLangs = p[KEY_AUTOCORRECT_LANGS] ?: defaults.autocorrectLangs,
                     autocorrectLearnWords = p[KEY_AUTOCORRECT_LEARN] ?: defaults.autocorrectLearnWords,
                     recentEmojis = deserializeRecentEmojis(p[KEY_RECENT_EMOJIS]),
                     customRowsByLang = customMap
-                )
+                ).sanitizedForBuild()
                 if (!hasPendingUserUpdate) {
                     PreferencesState.preferences.value = loaded
                 }
@@ -264,8 +261,9 @@ object PreferencesRepository {
     }
 
     fun update(context: Context, updated: KeyboardPreferences, debounceDisk: Boolean = false) {
+        val clean = updated.sanitizedForBuild()
         hasPendingUserUpdate = true
-        PreferencesState.preferences.value = updated
+        PreferencesState.preferences.value = clean
         val appCtx = context.applicationContext
         synchronized(saveMutex) {
             pendingSaveJob?.cancel()
@@ -299,8 +297,7 @@ object PreferencesRepository {
                         p[KEY_DOUBLE_SPACE_COMMA] = latest.doubleSpaceComma
                         p[KEY_SHOW_HYPHEN] = latest.showHyphenKey
                         p[KEY_CURSOR_ARROWS] = latest.showCursorArrows
-                        p[KEY_EXP_CAP_NAMES] = latest.experimentalCapitalizeNames
-                        p[KEY_EXP_AUTOCORRECT] = latest.experimentalAutocorrect
+                        p[KEY_AUTOCORRECT] = latest.autocorrectEnabled
                         p[KEY_AUTOCORRECT_LANGS] = latest.autocorrectLangs
                         p[KEY_AUTOCORRECT_LEARN] = latest.autocorrectLearnWords
                         p[KEY_RECENT_EMOJIS] = serializeRecentEmojis(latest.recentEmojis)

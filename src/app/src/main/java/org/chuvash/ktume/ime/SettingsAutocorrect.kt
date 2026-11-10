@@ -25,7 +25,7 @@ import org.chuvash.ktume.ui.theme.KesjeFontFamily
 import org.chuvash.ktume.ui.theme.KeyboardPalette
 
 /**
- * МОДУЛЬ: SettingsAutocorrect.kt — блок эксперимента «Автозамена опечаток» на вкладке «Эксперименты»:
+ * МОДУЛЬ: SettingsAutocorrect.kt — блок настройки автозамены и личного словаря на вкладке «Ввод»:
  * включение, языки словарей, обучение личного словаря, его просмотр, удаление слов и очистка.
  */
 @Composable
@@ -39,16 +39,16 @@ internal fun AutocorrectSettingsBlock(
     var confirmClear by remember { mutableStateOf(false) }
 
     SettingToggleRow(
-        title = "Автозамена опечаток",
-        subtitle = "Слово с опечаткой исправляется при вводе пробела, знака препинания или переноса строки " +
-            "(«превет» → «привет», «сак» → «ҫак»). Первое нажатие ⌫ сразу после исправления возвращает " +
-            "набранное слово. Слова из словарей и личного словаря не трогаются. Пароли, адреса и e-mail " +
+        title = "Автозамена опечаток и имён",
+        subtitle = "Исправляет опечатки и поднимает имена собственные с заглавной буквы при вводе пробела, " +
+            "знака препинания или переноса строки («превет» → «привет», «сак» → «ҫак», «иван» → «Иван»). " +
+            "Первое нажатие ⌫ сразу после замены возвращает исходное слово. Пароли, адреса и e-mail " +
             "не исправляются.",
-        checked = prefs.experimentalAutocorrect,
+        checked = prefs.autocorrectEnabled,
         palette = palette,
-        onCheckedChange = { savePrefs(prefs.copy(experimentalAutocorrect = it)) }
+        onCheckedChange = { savePrefs(prefs.copy(autocorrectEnabled = it)) }
     )
-    if (!prefs.experimentalAutocorrect) return
+    if (!prefs.autocorrectEnabled) return
 
     Text(
         text = "Словари автозамены (работают на раскладках Чӑвашла и Русская):",

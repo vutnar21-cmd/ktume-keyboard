@@ -1,6 +1,7 @@
 package org.chuvash.ktume.data
 
 import kotlin.math.abs
+import org.chuvash.ktume.BuildConfig
 
 /**
  * МОДУЛЬ: KeyboardLayouts.kt — языковые раскладки, пресеты сетки, слои символов,
@@ -31,22 +32,41 @@ enum class KeyboardLang(
     }
 }
 
-enum class ChuvashLayoutPreset(val id: String, val title: String, val subtitle: String) {
+enum class ChuvashLayoutPreset(
+    val id: String,
+    val title: String,
+    val subtitle: String,
+    val debugOnly: Boolean = false
+) {
     BALANCED_26(
-        "balanced_26",
-        "Эталонная сбалансированная (10 + 9 + 7 = 26 клавиш)",
-        "По умолчанию: ряды 10, 9 и 7 без пустых краёв; э→е, ь/ъ→ы"
+        id = "balanced_26",
+        title = "Сбалансированная Кӗсье (10 + 9 + 7 = 26 клавиш)",
+        subtitle = "По умолчанию: широкие клавиши, ӑ ӗ ҫ ӳ на первом слое; б, г, д, ж, з, э, ь — свайпом вверх"
+    ),
+    RUSSIAN_35(
+        id = "russian_cv_35",
+        title = "Русская + ӑ ӗ ҫ ӳ (12 + 12 + 11 = 35 клавиш)",
+        subtitle = "Привычная русская ЙЦУКЕН со всеми буквами и чувашскими ӑ, ӗ, ҫ, ӳ по правому краю"
     ),
     HEX_4ROW(
-        "hex_4row",
-        "Сотовая паркетная 4 ряда (7 + 7 + 7 + 5 = 26 клавиш)",
-        "Для режима сот (Hex): все 26 букв + Shift и ⌫, плотно вложенные паркетом без съезжания"
-    ),
-    FULL_28(
-        "full_28",
-        "Расширенная (10 + 10 + 8 = 28 клавиш)",
-        "Все фонемы Чӑвашла + э, ь на первом слое"
-    )
+        id = "hex_4row",
+        title = "Сотовая паркетная 4 ряда (7 + 7 + 7 + 5 = 26 клавиш)",
+        subtitle = "Для режима сот (Hex, только Debug): все 26 букв + Shift и ⌫ паркетом",
+        debugOnly = true
+    );
+
+    companion object {
+        fun availablePresets(isDebugBuild: Boolean = BuildConfig.DEBUG): List<ChuvashLayoutPreset> =
+            entries.filter { isDebugBuild || !it.debugOnly }
+
+        fun resolve(id: String?, isDebugBuild: Boolean = BuildConfig.DEBUG): ChuvashLayoutPreset {
+            val mapped = when (id) {
+                "full_28" -> RUSSIAN_35
+                else -> entries.find { it.id == id } ?: BALANCED_26
+            }
+            return if (mapped.debugOnly && !isDebugBuild) BALANCED_26 else mapped
+        }
+    }
 }
 
 object KeyboardLayouts {
@@ -225,10 +245,10 @@ object KeyboardLayouts {
                     listOf("л", "ҫ", "ш", "х", "ӳ", "я", "ч"),
                     listOf("с", "м", "и", "т", "ю")
                 )
-                ChuvashLayoutPreset.FULL_28 -> listOf(
-                    listOf("й", "ӑ", "у", "к", "е", "н", "ӗ", "ш", "х", "ӳ"),
-                    listOf("ф", "ы", "в", "а", "п", "р", "о", "л", "ҫ", "э"),
-                    listOf("я", "ч", "с", "м", "и", "т", "ь", "ю")
+                ChuvashLayoutPreset.RUSSIAN_35 -> listOf(
+                    listOf("й", "ц", "у", "к", "е", "н", "г", "ш", "щ", "з", "х", "ӑ"),
+                    listOf("ф", "ы", "в", "а", "п", "р", "о", "л", "д", "ж", "э", "ӗ"),
+                    listOf("я", "ч", "с", "м", "и", "т", "ь", "б", "ю", "ҫ", "ӳ")
                 )
             }
             KeyboardLang.RUSSIAN -> listOf(
@@ -427,8 +447,11 @@ object KeyboardLayouts {
     fun resolveEffectiveGeometry(prefs: KeyboardPreferences, isLandscape: Boolean): EffectiveKeyboardGeometry =
         EditorTextLogic.resolveEffectiveGeometry(prefs, isLandscape)
 
-    fun computeKeyboardBodyHeightDp(prefs: KeyboardPreferences, alphaRowCount: Int = 3): Float =
-        EditorTextLogic.computeKeyboardBodyHeightDp(prefs, alphaRowCount)
+    fun computeKeyboardBodyHeightDp(
+        prefs: KeyboardPreferences,
+        alphaRowCount: Int = 3,
+        isDebugBuild: Boolean = BuildConfig.DEBUG
+    ): Float = EditorTextLogic.computeKeyboardBodyHeightDp(prefs, alphaRowCount, isDebugBuild)
 
     fun resolveEmojiCategories(recentEmojis: List<String> = emptyList()): List<EmojiCategory> =
         EmojiCatalog.resolveCategories(recentEmojis)

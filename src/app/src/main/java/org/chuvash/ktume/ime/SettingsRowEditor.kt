@@ -41,6 +41,14 @@ internal fun SettingsRowEditor(
         title = "Количество букв в ряду и конструктор рядов",
         palette = palette
     ) {
+        Text(
+            text = "Экспериментальный конструктор: позволяет переставлять, убирать и добавлять клавиши в рядах. " +
+                "Вернуть стандартный вид можно выбором варианта на вкладке «Раскладка» или сбросом на вкладке «Система».",
+            style = MaterialTheme.typography.bodySmall,
+            color = palette.hintText
+        )
+        Spacer(modifier = Modifier.height(6.dp))
+
         Row(
             horizontalArrangement = Arrangement.spacedBy(6.dp),
             modifier = Modifier.horizontalScroll(rememberScrollState())
@@ -59,8 +67,7 @@ internal fun SettingsRowEditor(
 
         Spacer(modifier = Modifier.height(8.dp))
 
-        val langRows = prefs.customRowsByLang[editingLang]
-            ?: KeyboardLayouts.getDefaultRows(editingLang)
+        val langRows = prefs.rowsFor(editingLang)
 
         langRows.forEachIndexed { rIdx, rowList ->
             Column(

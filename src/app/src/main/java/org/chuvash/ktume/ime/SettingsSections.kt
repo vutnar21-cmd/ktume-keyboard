@@ -13,6 +13,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlin.math.roundToInt
+import org.chuvash.ktume.BuildConfig
 import org.chuvash.ktume.data.ChuvashLayoutPreset
 import org.chuvash.ktume.data.KeyboardLang
 import org.chuvash.ktume.data.KeyboardLayouts
@@ -37,8 +38,37 @@ internal enum class SettingsTab(val title: String) {
 internal fun LayoutSettingsSection(
     prefs: KeyboardPreferences,
     palette: KeyboardPalette,
-    savePrefs: (KeyboardPreferences) -> Unit
+    savePrefs: (KeyboardPreferences) -> Unit,
+    onResetSelectedCell: () -> Unit = {}
 ) {
+    SettingsSectionCard(
+        title = "Вариант чувашской раскладки (Чӑвашла)",
+        palette = palette
+    ) {
+        val activePreset = ChuvashLayoutPreset.resolve(prefs.chuvashPreset)
+        val isHexActive = BuildConfig.DEBUG && prefs.hexagonalGrid
+        ChuvashLayoutPreset.availablePresets(isDebugBuild = false).forEach { preset ->
+            val isSelected = !isHexActive && activePreset == preset
+            ChuvashPresetOptionCard(
+                preset = preset,
+                isSelected = isSelected,
+                palette = palette,
+                onClick = {
+                    val updatedMap = prefs.customRowsByLang.toMutableMap()
+                    updatedMap[KeyboardLang.CHUVASH] = KeyboardLayouts.getDefaultRows(KeyboardLang.CHUVASH, preset)
+                    savePrefs(
+                        prefs.copy(
+                            chuvashPreset = preset.id,
+                            hexagonalGrid = false,
+                            customRowsByLang = updatedMap
+                        )
+                    )
+                    onResetSelectedCell()
+                }
+            )
+        }
+    }
+
     SettingsSectionCard(
         title = "Активные языковые раскладки",
         palette = palette
@@ -56,6 +86,42 @@ internal fun LayoutSettingsSection(
                     else if (nextSet.size > 1) nextSet.remove(lang.code)
                     savePrefs(prefs.copy(enabledLayouts = nextSet))
                 }
+            )
+        }
+    }
+}
+
+@Composable
+private fun ChuvashPresetOptionCard(
+    preset: ChuvashLayoutPreset,
+    isSelected: Boolean,
+    palette: KeyboardPalette,
+    onClick: () -> Unit
+) {
+    Surface(
+        color = if (isSelected) palette.accentBg.copy(alpha = 0.16f) else palette.boardBg,
+        shape = RoundedCornerShape(12.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 4.dp)
+            .border(
+                width = if (isSelected) 1.5.dp else 1.dp,
+                color = if (isSelected) palette.accentBg else palette.hintText.copy(alpha = 0.25f),
+                shape = RoundedCornerShape(12.dp)
+            )
+            .clickable(onClick = onClick)
+    ) {
+        Column(modifier = Modifier.padding(12.dp)) {
+            Text(
+                text = preset.title,
+                fontWeight = FontWeight.Bold,
+                fontSize = 13.sp,
+                color = palette.keyText
+            )
+            Text(
+                text = preset.subtitle,
+                fontSize = 11.sp,
+                color = palette.hintText
             )
         }
     }
@@ -95,7 +161,11 @@ internal fun AppearanceSettingsSection(
     }
 
     SettingsSectionCard(
-        title = "Геометрия клавиш, шрифт и задержка Long-Press",
+        title = if (BuildConfig.DEBUG) {
+            "Геометрия клавиш, шрифт и задержка Long-Press"
+        } else {
+            "Ориентация и задержка Long-Press"
+        },
         palette = palette
     ) {
         SettingToggleRow(
@@ -106,36 +176,38 @@ internal fun AppearanceSettingsSection(
             onCheckedChange = { savePrefs(prefs.copy(compactLandscape = it)) }
         )
         Spacer(modifier = Modifier.height(4.dp))
-        SettingSliderRow(
-            label = "Высота клавиш (по умолч. 50): ${prefs.keyHeightDp.roundToInt()} dp",
-            value = prefs.keyHeightDp,
-            range = 38f..64f,
-            onValueChange = { savePrefsDebounced(prefs.copy(keyHeightDp = it)) }
-        )
-        SettingSliderRow(
-            label = "Скругление углов (по умолч. 14): ${prefs.keyCornerRadiusDp.roundToInt()} dp",
-            value = prefs.keyCornerRadiusDp,
-            range = 4f..24f,
-            onValueChange = { savePrefsDebounced(prefs.copy(keyCornerRadiusDp = it)) }
-        )
-        SettingSliderRow(
-            label = "Зазор по горизонтали (по умолч. 3): ${prefs.keyGapHDp.roundToInt()} dp",
-            value = prefs.keyGapHDp,
-            range = 0f..10f,
-            onValueChange = { savePrefsDebounced(prefs.copy(keyGapHDp = it)) }
-        )
-        SettingSliderRow(
-            label = "Зазор по вертикали (по умолч. 7): ${prefs.keyGapVDp.roundToInt()} dp",
-            value = prefs.keyGapVDp,
-            range = 0f..14f,
-            onValueChange = { savePrefsDebounced(prefs.copy(keyGapVDp = it)) }
-        )
-        SettingSliderRow(
-            label = "Размер шрифта клавиш (по умолч. 26): ${prefs.fontSizeSp.roundToInt()} sp",
-            value = prefs.fontSizeSp,
-            range = 14f..28f,
-            onValueChange = { savePrefsDebounced(prefs.copy(fontSizeSp = it)) }
-        )
+        if (BuildConfig.DEBUG) {
+            SettingSliderRow(
+                label = "Высота клавиш (по умолч. 50): ${prefs.keyHeightDp.roundToInt()} dp",
+                value = prefs.keyHeightDp,
+                range = 38f..64f,
+                onValueChange = { savePrefsDebounced(prefs.copy(keyHeightDp = it)) }
+            )
+            SettingSliderRow(
+                label = "Скругление углов (по умолч. 14): ${prefs.keyCornerRadiusDp.roundToInt()} dp",
+                value = prefs.keyCornerRadiusDp,
+                range = 4f..24f,
+                onValueChange = { savePrefsDebounced(prefs.copy(keyCornerRadiusDp = it)) }
+            )
+            SettingSliderRow(
+                label = "Зазор по горизонтали (по умолч. 3): ${prefs.keyGapHDp.roundToInt()} dp",
+                value = prefs.keyGapHDp,
+                range = 0f..10f,
+                onValueChange = { savePrefsDebounced(prefs.copy(keyGapHDp = it)) }
+            )
+            SettingSliderRow(
+                label = "Зазор по вертикали (по умолч. 7): ${prefs.keyGapVDp.roundToInt()} dp",
+                value = prefs.keyGapVDp,
+                range = 0f..14f,
+                onValueChange = { savePrefsDebounced(prefs.copy(keyGapVDp = it)) }
+            )
+            SettingSliderRow(
+                label = "Размер шрифта клавиш (по умолч. 26): ${prefs.fontSizeSp.roundToInt()} sp",
+                value = prefs.fontSizeSp,
+                range = 14f..28f,
+                onValueChange = { savePrefsDebounced(prefs.copy(fontSizeSp = it)) }
+            )
+        }
         SettingSliderRow(
             label = "Задержка долгого нажатия (Long-Press): ${prefs.longPressDelayMs} мс",
             value = prefs.longPressDelayMs.toFloat(),
@@ -153,7 +225,14 @@ internal fun InputSettingsSection(
     savePrefsDebounced: (KeyboardPreferences) -> Unit
 ) {
     SettingsSectionCard(
-        title = "Ввод, автозаглавная буква, звук и громкость",
+        title = "Автозамена и личный словарь",
+        palette = palette
+    ) {
+        AutocorrectSettingsBlock(prefs = prefs, palette = palette, savePrefs = savePrefs)
+    }
+
+    SettingsSectionCard(
+        title = "Поведение ввода, звук и тактильный отклик",
         palette = palette
     ) {
         SettingToggleRow(
@@ -222,10 +301,10 @@ internal fun InputSettingsSection(
         )
         SettingToggleRow(
             title = "Верхний цифровой ряд (1–0)",
-            subtitle = if (prefs.hexagonalGrid) {
+            subtitle = if (BuildConfig.DEBUG && prefs.hexagonalGrid) {
                 "Сейчас включены соты (Hex) — ряд временно скрыт и вернётся после выключения сот"
             } else {
-                "Отображается над буквами и страницами символов (в режиме сот скрывается)"
+                "Отображается над буквами и страницами символов без скачков высоты"
             },
             checked = prefs.showNumberRow,
             palette = palette,
@@ -251,76 +330,49 @@ internal fun ExperimentsSettingsSection(
     selectedCell: Pair<Int, Int>?,
     onSelectedCellChange: (Pair<Int, Int>?) -> Unit
 ) {
-    SettingsSectionCard(
-        title = "Экспериментальные функции",
-        palette = palette
-    ) {
-        Text(
-            text = "Функции в разработке: могут вести себя непредсказуемо. " +
-                "Включайте по одной, чтобы понять, что именно сломалось.",
-            style = MaterialTheme.typography.bodySmall,
-            color = palette.hintText
-        )
-        SettingToggleRow(
-            title = "Автозаглавные имена собственные",
-            subtitle = "Если набрать имя со строчной буквы (например, «иван») " +
-                "и поставить пробел, первая буква станет заглавной. " +
-                "Работает по базовому списку имён.",
-            checked = prefs.experimentalCapitalizeNames,
-            palette = palette,
-            onCheckedChange = { savePrefs(prefs.copy(experimentalCapitalizeNames = it)) }
-        )
-        AutocorrectSettingsBlock(prefs = prefs, palette = palette, savePrefs = savePrefs)
-    }
-
-    SettingsSectionCard(
-        title = "Архитектура чувашской раскладки и Соты (Hex)",
-        palette = palette
-    ) {
-        SettingToggleRow(
-            title = "⬡ Паркетная сотовая сетка (4 ряда: 7 + 7 + 7 + 5)",
-            subtitle = "Скруглённые шестиугольники, плотно вложенные друг в друга без съезжания",
-            checked = prefs.hexagonalGrid,
-            palette = palette,
-            onCheckedChange = { enabled ->
-                val targetPreset = if (enabled) ChuvashLayoutPreset.HEX_4ROW else ChuvashLayoutPreset.BALANCED_26
-                val currentCvRows = prefs.customRowsByLang[KeyboardLang.CHUVASH]
-                val isDefaultPresetRows = currentCvRows == null ||
-                    ChuvashLayoutPreset.entries.any {
-                        currentCvRows == KeyboardLayouts.getDefaultRows(KeyboardLang.CHUVASH, it)
+    if (BuildConfig.DEBUG) {
+        SettingsSectionCard(
+            title = "Сотовая сетка (Hex, только Debug)",
+            palette = palette
+        ) {
+            SettingToggleRow(
+                title = "⬡ Паркетная сотовая сетка (4 ряда: 7 + 7 + 7 + 5)",
+                subtitle = "Скруглённые шестиугольники, плотно вложенные друг в друга без съезжания",
+                checked = prefs.hexagonalGrid,
+                palette = palette,
+                onCheckedChange = { enabled ->
+                    val targetPreset = if (enabled) ChuvashLayoutPreset.HEX_4ROW else ChuvashLayoutPreset.BALANCED_26
+                    val currentCvRows = prefs.customRowsByLang[KeyboardLang.CHUVASH]
+                    val isDefaultPresetRows = currentCvRows == null ||
+                        ChuvashLayoutPreset.entries.any {
+                            currentCvRows == KeyboardLayouts.getDefaultRows(KeyboardLang.CHUVASH, it)
+                        }
+                    val updatedMap = prefs.customRowsByLang.toMutableMap()
+                    if (isDefaultPresetRows) {
+                        updatedMap[KeyboardLang.CHUVASH] = KeyboardLayouts.getDefaultRows(KeyboardLang.CHUVASH, targetPreset)
                     }
-                val updatedMap = prefs.customRowsByLang.toMutableMap()
-                if (isDefaultPresetRows) {
-                    updatedMap[KeyboardLang.CHUVASH] = KeyboardLayouts.getDefaultRows(KeyboardLang.CHUVASH, targetPreset)
+                    savePrefs(
+                        prefs.copy(
+                            hexagonalGrid = enabled,
+                            chuvashPreset = if (isDefaultPresetRows) targetPreset.id else prefs.chuvashPreset,
+                            customRowsByLang = updatedMap
+                        )
+                    )
+                    onSelectedCellChange(null)
                 }
-                savePrefs(
-                    prefs.copy(
-                        hexagonalGrid = enabled,
-                        chuvashPreset = if (isDefaultPresetRows) targetPreset.id else prefs.chuvashPreset,
-                        customRowsByLang = updatedMap
-                    )
-                )
-                onSelectedCellChange(null)
-            }
-        )
+            )
 
-        Spacer(modifier = Modifier.height(6.dp))
+            Spacer(modifier = Modifier.height(6.dp))
 
-        ChuvashLayoutPreset.entries.forEach { preset ->
-            val isSelected = prefs.chuvashPreset == preset.id
-            Surface(
-                color = if (isSelected) palette.accentBg.copy(alpha = 0.16f) else palette.boardBg,
-                shape = RoundedCornerShape(12.dp),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 4.dp)
-                    .border(
-                        width = if (isSelected) 1.5.dp else 1.dp,
-                        color = if (isSelected) palette.accentBg else palette.hintText.copy(alpha = 0.25f),
-                        shape = RoundedCornerShape(12.dp)
-                    )
-                    .clickable {
-                        if (isSelected) return@clickable
+            val resolvedPreset = ChuvashLayoutPreset.resolve(prefs.chuvashPreset, isDebugBuild = true)
+            ChuvashLayoutPreset.availablePresets(isDebugBuild = true).forEach { preset ->
+                val isSelected = resolvedPreset == preset &&
+                    (preset == ChuvashLayoutPreset.HEX_4ROW) == prefs.hexagonalGrid
+                ChuvashPresetOptionCard(
+                    preset = preset,
+                    isSelected = isSelected,
+                    palette = palette,
+                    onClick = {
                         val updatedMap = prefs.customRowsByLang.toMutableMap()
                         updatedMap[KeyboardLang.CHUVASH] = KeyboardLayouts.getDefaultRows(KeyboardLang.CHUVASH, preset)
                         val isHexPreset = (preset == ChuvashLayoutPreset.HEX_4ROW)
@@ -333,20 +385,7 @@ internal fun ExperimentsSettingsSection(
                         )
                         onSelectedCellChange(null)
                     }
-            ) {
-                Column(modifier = Modifier.padding(12.dp)) {
-                    Text(
-                        text = preset.title,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 13.sp,
-                        color = palette.keyText
-                    )
-                    Text(
-                        text = preset.subtitle,
-                        fontSize = 11.sp,
-                        color = palette.hintText
-                    )
-                }
+                )
             }
         }
     }
