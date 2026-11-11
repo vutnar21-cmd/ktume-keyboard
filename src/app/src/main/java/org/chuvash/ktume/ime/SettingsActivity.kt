@@ -18,9 +18,11 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.view.WindowCompat
 import org.chuvash.ktume.BuildConfig
 import org.chuvash.ktume.data.KeyboardLang
 import org.chuvash.ktume.data.KeyboardPreferences
@@ -50,6 +52,14 @@ class SettingsActivity : ComponentActivity() {
             val prefsLoaded by PreferencesRepository.loaded.collectAsState()
             val activePalette = remember(prefs.paletteId) { KesjePalettes.byId(prefs.paletteId) }
             val colorScheme = remember(activePalette) { activePalette.toColorScheme() }
+            val view = LocalView.current
+            if (!view.isInEditMode) {
+                SideEffect {
+                    val controller = WindowCompat.getInsetsController(window, view)
+                    controller.isAppearanceLightStatusBars = !activePalette.isDark
+                    controller.isAppearanceLightNavigationBars = !activePalette.isDark
+                }
+            }
             val isLandscape = LocalConfiguration.current.orientation == Configuration.ORIENTATION_LANDSCAPE
 
             var testFieldValue by rememberSaveable(stateSaver = TextFieldValue.Saver) {

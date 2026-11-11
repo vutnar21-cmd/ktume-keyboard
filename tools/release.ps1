@@ -268,6 +268,21 @@ try {
     }
     Copy-Item -Path $builtApkPath -Destination $targetApkPath -Force
 
+    $targetBundlePath = $null
+    if ($BuildBundle) {
+        $builtBundlePath = Join-Path $gradleRoot "app\build\outputs\bundle\release\app-release.aab"
+        if (-not (Test-Path $builtBundlePath)) {
+            Fail "Signed AAB not found at $builtBundlePath."
+        }
+        $bundleFileName = "ktume-$versionName.aab"
+        if ($DryRun) {
+            $targetBundlePath = Join-Path $gradleRoot "app\build\outputs\bundle\release\$bundleFileName"
+        } else {
+            $targetBundlePath = Join-Path $releasesDir $bundleFileName
+        }
+        Copy-Item -Path $builtBundlePath -Destination $targetBundlePath -Force
+    }
+
     # 4. Verify deterministic APK contents & APK signature
     Write-Step "Verifying APK contents and cryptographic signature"
     Add-Type -AssemblyName System.IO.Compression.FileSystem
@@ -333,6 +348,13 @@ try {
     Write-Host "APK Path     : $targetApkPath" -ForegroundColor Green
     Write-Host "APK Size     : $apkSizeMb MB" -ForegroundColor Green
     Write-Host "APK SHA-256  : $apkSha256" -ForegroundColor Green
+    if ($targetBundlePath) {
+        $bundleSha256 = (Get-FileHash -Path $targetBundlePath -Algorithm SHA256).Hash.ToLowerInvariant()
+        $bundleSizeMb = ([math]::Round((Get-Item $targetBundlePath).Length / 1MB, 2)).ToString([System.Globalization.CultureInfo]::InvariantCulture)
+        Write-Host "AAB Path     : $targetBundlePath" -ForegroundColor Green
+        Write-Host "AAB Size     : $bundleSizeMb MB (ready for Google Play Console)" -ForegroundColor Green
+        Write-Host "AAB SHA-256  : $bundleSha256" -ForegroundColor Green
+    }
     Write-Host "Cert SHA-256 : $actualCertSha256 (matches the published certificate)" -ForegroundColor Green
     Write-Host "`n--- Release Notes ($notesPath) ---`n$releaseNotes-----------------------------------"
 

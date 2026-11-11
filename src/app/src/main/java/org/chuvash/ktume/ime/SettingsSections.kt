@@ -9,6 +9,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -453,6 +454,29 @@ internal fun SystemSettingsSection(
             range = 0f..80f,
             onValueChange = { savePrefsDebounced(prefs.copy(bottomInsetDp = it)) }
         )
+    }
+
+    SettingsSectionCard(
+        title = "Приватность (v${BuildConfig.VERSION_NAME})",
+        palette = palette
+    ) {
+        val uriHandler = LocalUriHandler.current
+        Text(
+            text = "100 % офлайн: 0 разрешений, нет доступа к интернету, аналитики и облачного резервного копирования. Настройки и личный словарь хранятся только на вашем устройстве.",
+            style = MaterialTheme.typography.bodySmall,
+            color = palette.hintText
+        )
+        Spacer(modifier = Modifier.height(6.dp))
+        OutlinedButton(
+            onClick = {
+                runCatching {
+                    uriHandler.openUri("https://github.com/vutnar21-cmd/ktume-keyboard/blob/main/docs/PRIVACY_POLICY.md")
+                }
+            },
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text("Политика конфиденциальности", fontSize = 12.sp, fontFamily = KesjeFontFamily)
+        }
     }
 
     OutlinedButton(

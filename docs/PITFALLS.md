@@ -22,7 +22,7 @@
 
 - **Соты (`HoneycombHexGrid.kt`) и смещённые попадания:** ряды сот рисуются с вертикальным шагом `0.8 × keyHeight` и перекрываются → каждый `Row` обязан иметь `.height(rowHitHeight).clipToBounds()` (обрезает и отрисовку, и hit-test, иначе тап по низу клавиши печатает букву из ряда ниже).
 - **Устаревший API кривых в `Canvas` (`KesjeIcons.kt`):** в современном Compose `Path` использовать `quadraticTo(...)`, а не депрекейтнутый `quadraticBezierTo(...)` (даёт предупреждения компилятора).
-- **Замыкания внутри `pointerInput` (`Toolbar.kt`, `Keys.kt`):** долгоживущие жестовые корутины захватывают старые лямбды при рекомпозиции → все коллбэки внутри `pointerInput` оборачивать в `rememberUpdatedState`.
+- **Замыкания внутри `pointerInput`, `BoxWithConstraints` и локальные `::functionRef` (`Toolbar.kt`, `Keys.kt`, `KeyboardScreen.kt`, `SettingsPreviewBench.kt`):** долгоживущие жестовые корутины и сабкомпозиция `BoxWithConstraints` в связке со ссылками на локальные функции Kotlin (`::commitTrackedText`, где `FunctionReference.equals` игнорирует захваченные локальные переменные) удерживают старые коллбэки первой композиции → все коллбэки и срез `TextFieldValue` оборачивать в `rememberUpdatedState`.
 - **Альбомная геометрия (`compactLandscape`):** сжатие высоты в ландшафте считается чистой функцией `resolveEffectiveGeometry` (`renderPrefs`) во время рендера → никогда не мутировать сохранённые портретные настройки пользователя при повороте экрана.
 
 ## Android IME, `InputConnection` и Unicode

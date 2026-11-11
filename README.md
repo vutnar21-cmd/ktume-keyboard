@@ -4,7 +4,7 @@
 чувашский (`Чӑвашла`), русский, латиница (`Latina`) и греческий. Приложение работает полностью
 локально (без доступа в интернет, аналитики и облачных сервисов).
 
-- Пакет: `org.chuvash.ktume` (`v1.5.0`, `versionCode = 6`)
+- Пакет: `org.chuvash.ktume` (`v1.6.0`, `versionCode = 7`)
 - Репозиторий: https://github.com/vutnar21-cmd/ktume-keyboard
 - `minSdk = 26` (Android 8.0), `targetSdk = 37` (Android 17), `compileSdk = 37`
 - Kotlin `2.4.21`, AGP `9.5.0`, Gradle `9.8.2`, Jetpack Compose (Material 3, BOM `2026.09.00`), DataStore `1.3.0`
@@ -217,27 +217,7 @@ cd src && ./gradlew assembleDebug testDebugUnitTest lintDebug --no-daemon
 
 ---
 
-## 4. Открытые задачи и вопросы
-
-План работ и очередь задач ведутся в [`tasks/task.md`](tasks/task.md) (подробные разборы — в `tasks/specs/`). Ключевые открытые темы:
-
-- **Финальное название приложения** ([`T-004`](tasks/specs/004-app-name.md)): утверждено название
-  **Кӗсье Тӳме / Kĕsje Tüme** (кратко **кТӳме / kTüme**) и идентификатор пакета `org.chuvash.ktume` (на приёмке).
-- **Таблицы Long-Press** ([`T-005`](tasks/specs/005-longpress-glyphs.md)): очистка дублей и выверка
-  частотности вариантов. Лента частиц и аффиксов ([`T-002`](tasks/specs/002-chuvash-morphemes.md)) удалена
-  по решению владельца.
-- **Эргономика нажатий и зазоров** ([`T-015`](tasks/specs/015-key-gap-8.md), [`T-016`](tasks/specs/016-hyphen-vs-space.md),
-  [`T-018`](tasks/specs/018-tap-in-gap.md)): подбор финальных `hGap`/`vGap` на устройстве, бесшовные хитбоксы
-  клавиш в зазорах (`gap / 2`) и защита от случайного нажатия дефиса вместо пробела.
-- **Полировка сот и техдолг** ([`T-001`](tasks/specs/001-hex-polish.md), [`T-007`](tasks/specs/007-code-cleanup.md),
-  [`T-009`](tasks/specs/009-tech-debt-review.md)): проверка `HoneycombHexGrid` на разных экранах, удаление
-  остатков мёртвого кода и мелкие UX-исправления по итогам код-ревью.
-- **Автозамена опечаток** ([`T-013`](tasks/specs/013-microdictionary.md)): эксперимент для чувашского и русского;
-  проверка на устройстве и подбор порогов, вопрос о ленте подсказок отложен.
-
----
-
-## 5. Лицензия и приватность
+## 4. Лицензия и приватность
 
 - **Код проекта:** распространяется под лицензией [Apache License 2.0](LICENSE).
 - **Шрифт и сторонние библиотеки:** шрифт Kesje Rounded (`src/app/src/main/res/font/kesje_rounded.ttf`) —

@@ -58,6 +58,15 @@ fun KeyboardScreen(
 ) {
     val context = LocalContext.current
     val isLandscape = LocalConfiguration.current.orientation == Configuration.ORIENTATION_LANDSCAPE
+    val latestOnLangChange by rememberUpdatedState(onLangChange)
+    val latestOnCommitText by rememberUpdatedState(onCommitText)
+    val latestOnBackspace by rememberUpdatedState(onBackspace)
+    val latestOnDeleteWord by rememberUpdatedState(onDeleteWord)
+    val latestOnReplaceSpaceWithComma by rememberUpdatedState(onReplaceSpaceWithComma)
+    val latestOnEnter by rememberUpdatedState(onEnter)
+    val latestOnMoveCursor by rememberUpdatedState(onMoveCursor)
+    val latestOnGestureTick by rememberUpdatedState(onGestureTick)
+    val latestOnOpenSettings by rememberUpdatedState(onOpenSettings)
 
     val geo = remember(prefs, isLandscape) {
         KeyboardLayouts.resolveEffectiveGeometry(prefs, isLandscape)
@@ -94,7 +103,7 @@ fun KeyboardScreen(
 
     fun selectLang(lang: KeyboardLang) {
         currentLang = lang
-        onLangChange(lang)
+        latestOnLangChange(lang)
     }
 
     var shiftState by remember {
@@ -187,7 +196,7 @@ fun KeyboardScreen(
 
     fun commitTrackedText(text: String) {
         showLangMenuPopup = false
-        onCommitText(text)
+        latestOnCommitText(text)
         lastCommittedWasSpace = (text == " ")
     }
 
@@ -201,13 +210,13 @@ fun KeyboardScreen(
 
     fun handleBackspaceTap() {
         showLangMenuPopup = false
-        onBackspace()
+        latestOnBackspace()
         lastCommittedWasSpace = false
     }
 
     fun handleDeleteWordSwipe() {
         showLangMenuPopup = false
-        onDeleteWord()
+        latestOnDeleteWord()
         lastCommittedWasSpace = false
     }
 
@@ -215,7 +224,7 @@ fun KeyboardScreen(
         showLangMenuPopup = false
         val now = System.currentTimeMillis()
         val replaced = if (renderPrefs.doubleSpaceComma && lastCommittedWasSpace && (now - lastSpaceTapMs) < DOUBLE_TAP_WINDOW_MS) {
-            onReplaceSpaceWithComma()
+            latestOnReplaceSpaceWithComma()
         } else {
             false
         }
@@ -230,8 +239,14 @@ fun KeyboardScreen(
 
     fun handleEnterKey() {
         showLangMenuPopup = false
-        onEnter()
+        latestOnEnter()
         lastCommittedWasSpace = false
+    }
+
+    fun handleMoveCursor(delta: Int) {
+        showLangMenuPopup = false
+        lastCommittedWasSpace = false
+        latestOnMoveCursor(delta)
     }
 
     val boardBodyHeightDp = remember(renderPrefs, baseLangRows.size) {
@@ -301,18 +316,14 @@ fun KeyboardScreen(
                         emojiCategoryIdx = idx
                     }
                 },
-                onMoveCursor = { delta ->
-                    showLangMenuPopup = false
-                    lastCommittedWasSpace = false
-                    onMoveCursor(delta)
-                },
+                onMoveCursor = ::handleMoveCursor,
                 onPasteText = { text ->
                     commitTrackedText(text)
                     toolbarOverlay = ToolbarOverlay.NONE
                 },
                 onOpenSettings = {
                     showLangMenuPopup = false
-                    onOpenSettings()
+                    latestOnOpenSettings()
                 }
             )
 
@@ -329,7 +340,7 @@ fun KeyboardScreen(
                         enterIconType = enterIconType,
                         prefs = renderPrefs,
                         palette = palette,
-                        onGestureTick = onGestureTick,
+                        onGestureTick = { latestOnGestureTick() },
                         onSelectCategoryIdx = { idx ->
                             if (idx == 0 && emojiCategoryIdx != 0) {
                                 frozenRecentEmojis = prefs.recentEmojis
@@ -341,11 +352,7 @@ fun KeyboardScreen(
                             PreferencesRepository.recordRecentEmoji(context, emoji)
                         },
                         onCommitSpace = ::handleCommitSpace,
-                        onMoveCursor = { delta ->
-                            showLangMenuPopup = false
-                            lastCommittedWasSpace = false
-                            onMoveCursor(delta)
-                        },
+                        onMoveCursor = ::handleMoveCursor,
                         onBackspace = ::handleBackspaceTap,
                         onDeleteWord = ::handleDeleteWordSwipe,
                         onEnter = ::handleEnterKey,
@@ -381,7 +388,7 @@ fun KeyboardScreen(
                             palette = palette,
                             maxWidth = boardMaxWidth,
                             onToggleShift = ::handleToggleShift,
-                            onGestureTick = onGestureTick,
+                            onGestureTick = { latestOnGestureTick() },
                             onCommit = ::commitCharacterAndConsumeOnceShift,
                             onBackspace = ::handleBackspaceTap,
                             onDeleteWord = ::handleDeleteWordSwipe
@@ -394,7 +401,7 @@ fun KeyboardScreen(
                                 palette = palette,
                                 hPad = hPad,
                                 vPad = vPad,
-                                onGestureTick = onGestureTick,
+                                onGestureTick = { latestOnGestureTick() },
                                 onCommit = ::commitTrackedText
                             )
                         }
@@ -419,7 +426,7 @@ fun KeyboardScreen(
                                     KeyboardMode.SYMBOLS_1
                                 }
                             },
-                            onGestureTick = onGestureTick,
+                            onGestureTick = { latestOnGestureTick() },
                             onCommitChar = ::commitCharacterAndConsumeOnceShift,
                             onBackspace = ::handleBackspaceTap,
                             onDeleteWord = ::handleDeleteWordSwipe
@@ -449,17 +456,15 @@ fun KeyboardScreen(
                             keyboardMode = KeyboardMode.NUMPAD
                         },
                         onGlobeClick = {
-                            if (showLangMenuPopup) {
-                                showLangMenuPopup = false
-                            } else {
+                            if (!showLangMenuPopup) {
                                 val idx = enabledLangs.indexOf(currentLang)
                                 selectLang(enabledLangs[(idx + 1) % enabledLangs.size])
                                 lastCommittedWasSpace = false
-                                showLangMenuPopup = false
                             }
+                            showLangMenuPopup = false
                         },
                         onGlobeLongClick = {
-                            onGestureTick()
+                            latestOnGestureTick()
                             showLangMenuPopup = !showLangMenuPopup
                         },
                         onSelectLang = { chosen ->
@@ -474,13 +479,9 @@ fun KeyboardScreen(
                                 picker()
                             }
                         },
-                        onGestureTick = onGestureTick,
+                        onGestureTick = { latestOnGestureTick() },
                         onCommitSpace = ::handleCommitSpace,
-                        onMoveCursor = { delta ->
-                            showLangMenuPopup = false
-                            lastCommittedWasSpace = false
-                            onMoveCursor(delta)
-                        },
+                        onMoveCursor = ::handleMoveCursor,
                         onCommitText = ::commitTrackedText,
                         onEnter = ::handleEnterKey
                     )

@@ -15,6 +15,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
@@ -92,6 +93,9 @@ internal fun SettingsKeyboardPreview(
     val audioManager = remember(context) {
         context.getSystemService(Context.AUDIO_SERVICE) as? AudioManager
     }
+    val latestPrefs by rememberUpdatedState(prefs)
+    val latestFieldValue by rememberUpdatedState(testFieldValue)
+    val latestOnFieldChange by rememberUpdatedState(onTestFieldChange)
 
     val fullText = testFieldValue.text
     val selStart = testFieldValue.selection.min.coerceIn(0, fullText.length)
@@ -99,7 +103,15 @@ internal fun SettingsKeyboardPreview(
     val beforeCursor = fullText.substring(0, selStart)
     val afterCursor = fullText.substring(selEnd)
 
-    fun feedback() = playKeypressSound(audioManager, prefs)
+    fun currentSlice(): Triple<String, String, Boolean> {
+        val current = latestFieldValue
+        val txt = current.text
+        val minSel = current.selection.min.coerceIn(0, txt.length)
+        val maxSel = current.selection.max.coerceIn(0, txt.length)
+        return Triple(txt.substring(0, minSel), txt.substring(maxSel), minSel != maxSel)
+    }
+
+    fun feedback() = playKeypressSound(audioManager, latestPrefs)
 
     // Автозамена в тестовом поле работает идентично сервису клавиатуры (включая имена и Enter)
     val autocorrect = remember { AutocorrectSession() }
@@ -110,8 +122,8 @@ internal fun SettingsKeyboardPreview(
     }
 
     fun resolvePreviewLang(): KeyboardLang? =
-        previewLang?.takeIf { it.code in prefs.enabledLayouts }
-            ?: KeyboardLang.entries.firstOrNull { it.code in prefs.enabledLayouts }
+        previewLang?.takeIf { it.code in latestPrefs.enabledLayouts }
+            ?: KeyboardLang.entries.firstOrNull { it.code in latestPrefs.enabledLayouts }
 
     Box(
         modifier = Modifier
@@ -133,30 +145,32 @@ internal fun SettingsKeyboardPreview(
             },
             onCommitText = { committed ->
                 feedback()
-                val correction = if (selStart == selEnd) {
-                    AutocorrectEngine.findCorrection(autocorrect, prefs, beforeCursor, committed, resolvePreviewLang())
+                val (curBefore, curAfter, hasSelection) = currentSlice()
+                val correction = if (!hasSelection) {
+                    AutocorrectEngine.findCorrection(autocorrect, latestPrefs, curBefore, committed, resolvePreviewLang())
                 } else {
                     autocorrect.cancelPending()
                     null
                 }
                 val fixedBefore = if (correction != null) {
-                    beforeCursor.dropLast(correction.original.length) + correction.replacement
+                    curBefore.dropLast(correction.original.length) + correction.replacement
                 } else {
-                    beforeCursor
+                    curBefore
                 }
-                val nextText = fixedBefore + committed + afterCursor
+                val nextText = fixedBefore + committed + curAfter
                 val nextCursor = (fixedBefore.length + committed.length).coerceIn(0, nextText.length)
-                onTestFieldChange(TextFieldValue(nextText, TextRange(nextCursor)))
+                latestOnFieldChange(TextFieldValue(nextText, TextRange(nextCursor)))
                 if (correction != null) autocorrect.onCorrectionApplied(correction, committed)
             },
             onReplaceSpaceWithComma = {
                 autocorrect.cancelPending()
-                if (KeyboardLayouts.canReplaceSpaceWithCommaBeforeCursor(beforeCursor, selStart != selEnd)) {
+                val (curBefore, curAfter, hasSelection) = currentSlice()
+                if (KeyboardLayouts.canReplaceSpaceWithCommaBeforeCursor(curBefore, hasSelection)) {
                     feedback()
-                    val trimmedBefore = beforeCursor.dropLast(1)
-                    val nextText = "$trimmedBefore, $afterCursor"
+                    val trimmedBefore = curBefore.dropLast(1)
+                    val nextText = "$trimmedBefore, $curAfter"
                     val nextCursor = (trimmedBefore.length + 2).coerceIn(0, nextText.length)
-                    onTestFieldChange(TextFieldValue(nextText, TextRange(nextCursor)))
+                    latestOnFieldChange(TextFieldValue(nextText, TextRange(nextCursor)))
                     true
                 } else {
                     false
@@ -164,53 +178,57 @@ internal fun SettingsKeyboardPreview(
             },
             onBackspace = {
                 feedback()
-                val revert = if (selStart == selEnd) autocorrect.takeRevert(beforeCursor) else null
+                val (curBefore, curAfter, hasSelection) = currentSlice()
+                val revert = if (!hasSelection) autocorrect.takeRevert(curBefore) else null
                 if (revert != null) {
                     // Первый ⌫ после автозамены возвращает набранное слово
-                    val newBefore = beforeCursor.dropLast(revert.committedTail.length) + revert.original + revert.separator
-                    onTestFieldChange(TextFieldValue(newBefore + afterCursor, TextRange(newBefore.length)))
-                    if (prefs.autocorrectLearnWords) PreferencesRepository.addPersonalWord(context, revert.original)
-                } else if (selStart != selEnd) {
+                    val newBefore = curBefore.dropLast(revert.committedTail.length) + revert.original + revert.separator
+                    latestOnFieldChange(TextFieldValue(newBefore + curAfter, TextRange(newBefore.length)))
+                    if (latestPrefs.autocorrectLearnWords) PreferencesRepository.addPersonalWord(context, revert.original)
+                } else if (hasSelection) {
                     autocorrect.cancelPending()
-                    onTestFieldChange(TextFieldValue(beforeCursor + afterCursor, TextRange(selStart)))
-                } else if (beforeCursor.isNotEmpty()) {
-                    val newBefore = KeyboardLayouts.dropLastGrapheme(beforeCursor)
-                    onTestFieldChange(TextFieldValue(newBefore + afterCursor, TextRange(newBefore.length)))
+                    latestOnFieldChange(TextFieldValue(curBefore + curAfter, TextRange(curBefore.length)))
+                } else if (curBefore.isNotEmpty()) {
+                    val newBefore = KeyboardLayouts.dropLastGrapheme(curBefore)
+                    latestOnFieldChange(TextFieldValue(newBefore + curAfter, TextRange(newBefore.length)))
                 }
             },
             onDeleteWord = {
                 feedback()
                 autocorrect.cancelPending()
-                if (selStart != selEnd) {
-                    onTestFieldChange(TextFieldValue(beforeCursor + afterCursor, TextRange(selStart)))
+                val (curBefore, curAfter, hasSelection) = currentSlice()
+                if (hasSelection) {
+                    latestOnFieldChange(TextFieldValue(curBefore + curAfter, TextRange(curBefore.length)))
                 } else {
-                    val deleteLen = KeyboardLayouts.computeDeleteWordLength(beforeCursor)
-                    val newBefore = beforeCursor.dropLast(deleteLen)
-                    onTestFieldChange(TextFieldValue(newBefore + afterCursor, TextRange(newBefore.length)))
+                    val deleteLen = KeyboardLayouts.computeDeleteWordLength(curBefore)
+                    val newBefore = curBefore.dropLast(deleteLen)
+                    latestOnFieldChange(TextFieldValue(newBefore + curAfter, TextRange(newBefore.length)))
                 }
             },
             onEnter = {
                 feedback()
-                val correction = if (selStart == selEnd) {
-                    AutocorrectEngine.findCorrection(autocorrect, prefs, beforeCursor, "\n", resolvePreviewLang())
+                val (curBefore, curAfter, hasSelection) = currentSlice()
+                val correction = if (!hasSelection) {
+                    AutocorrectEngine.findCorrection(autocorrect, latestPrefs, curBefore, "\n", resolvePreviewLang())
                 } else {
                     autocorrect.cancelPending()
                     null
                 }
                 val fixedBefore = if (correction != null) {
-                    beforeCursor.dropLast(correction.original.length) + correction.replacement
+                    curBefore.dropLast(correction.original.length) + correction.replacement
                 } else {
-                    beforeCursor
+                    curBefore
                 }
-                val nextText = "$fixedBefore\n$afterCursor"
+                val nextText = "$fixedBefore\n$curAfter"
                 val nextCursor = (fixedBefore.length + 1).coerceIn(0, nextText.length)
-                onTestFieldChange(TextFieldValue(nextText, TextRange(nextCursor)))
+                latestOnFieldChange(TextFieldValue(nextText, TextRange(nextCursor)))
                 if (correction != null) autocorrect.onCorrectionApplied(correction, "\n")
             },
             onMoveCursor = { delta ->
                 autocorrect.cancelPending()
-                val nextCursor = (selEnd + delta).coerceIn(0, fullText.length)
-                onTestFieldChange(testFieldValue.copy(selection = TextRange(nextCursor)))
+                val current = latestFieldValue
+                val nextCursor = (current.selection.max + delta).coerceIn(0, current.text.length)
+                latestOnFieldChange(current.copy(selection = TextRange(nextCursor)))
             },
             onShowImePicker = {
                 val imm = context.getSystemService(Context.INPUT_METHOD_SERVICE) as? InputMethodManager

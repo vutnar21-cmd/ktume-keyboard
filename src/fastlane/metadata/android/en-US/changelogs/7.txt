@@ -1,0 +1,5 @@
+- Updated app name: Kĕsje Tüme / kTüme (Кӗсье Тӳме)
+- Two Chuvash layout presets: Balanced 26-key and Russian + ӑ ӗ ҫ ӳ (35-key)
+- Offline autocorrect & proper-name capitalization promoted to Input tab (enabled by default)
+- Disabled cloud auto-backup (allowBackup=false) to keep personal dictionary strictly on-device
+- Reference key geometry in Release builds and Privacy card in System settings
