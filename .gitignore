@@ -1,5 +1,6 @@
-# Операционные задачи, черновики и разборы (ведутся строго локально, вне Git)
+# Операционные задачи, разборы и исследования (ведутся строго локально, вне Git)
 tasks/
+research/
 
 # Gradle и Kotlin
 .gradle/
@@ -37,10 +38,6 @@ releases/*
 *.ap_
 *.dex
 *.class
-
-# Тяжёлые исследовательские материалы (опись ведётся в research/raw/MANIFEST.md)
-research/raw/*
-!research/raw/MANIFEST.md
 
 # Кэш исходников словарей автозамены (tools/dictionaries/build_dictionaries.py)
 tools/dictionaries/.cache/

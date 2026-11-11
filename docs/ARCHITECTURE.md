@@ -16,8 +16,8 @@ ktume-keyboard/
 │   ├── README.md               # Оглавление раздела документации
 │   ├── THIRD_PARTY_NOTICES.md  # Лицензии шрифта Kesje Rounded (OFL-1.1), словарей и библиотек
 │   └── *.svg                   # SVG-бейджи скачивания и QR-код для публичного README.md
-├── releases/                   # Собранные локальные APK (в .gitignore)
-├── research/                   # Исследования, выбор названия и референсы шрифтов
+├── releases/                   # Собранные локальные APK и AAB (в .gitignore)
+├── research/                   # Исследования, выбор названия и референсы шрифтов (локально, в .gitignore)
 │   ├── notes/                  # app-name-research.md, референсы глифов Comfortaa / Kesje Rounded
 │   ├── raw/                    # Тяжёлые некоммиченные материалы + MANIFEST.md
 │   ├── spikes/                 # Экспериментальные замеры и прототипы
@@ -31,7 +31,7 @@ ktume-keyboard/
 │   ├── gradlew / gradlew.bat   # Скрипты запуска Gradle Wrapper
 │   ├── keystore.properties.example # Шаблон подписи (рабочие local.properties, keystore.properties, *.jks — в .gitignore)
 │   └── settings.gradle.kts     # rootProject.name = "KTumeKeyboard", include(":app")
-├── tasks/                      # Операционный центр задач
+├── tasks/                      # Операционный центр задач (локально, в .gitignore)
 │   ├── img/                    # Скриншоты и иллюстрации к задачам
 │   ├── specs/                  # Подробные разборы и отчёты по задачам (001..018 и новые)
 │   ├── archive.md              # Архив закрытых задач
@@ -44,7 +44,7 @@ ktume-keyboard/
 │   └── release.ps1             # Локальная сборка, проверка SHA-256 подписи и публикация через gh CLI
 │
 ├── .gitattributes              # Правила переводов строк и бинарных файлов в Git
-├── .gitignore                  # Исключения Git (кэши сборки, ключи .jks, releases/*, research/raw/*)
+├── .gitignore                  # Исключения Git (tasks/, research/, releases/*, кэши сборки, ключи .jks)
 ├── AGENTS.md                   # Компактные правила и инварианты для ИИ-агентов (< 10 КБ)
 ├── LICENSE                     # Лицензия кода (Apache License 2.0)
 └── README.md                   # Публичное описание, бейджи установки (GitHub / Obtainium), инструкции

@@ -33,7 +33,7 @@
 | Принятые и отклонённые решения (`принято / заменено / отклонено`) | [`docs/DECISIONS.md`](docs/DECISIONS.md) |
 | Книга граблей (Gradle/JDK, DataStore, соты, `InputConnection`) | [`docs/PITFALLS.md`](docs/PITFALLS.md) |
 | Механики клавиатуры и математика автозамены | [`docs/features-and-mechanics.md`](docs/features-and-mechanics.md), [`docs/autocorrect.md`](docs/autocorrect.md) |
-| Исследования (выбор названия, подбор шрифта) | [`research/INDEX.md`](research/INDEX.md) (`notes/`, `spikes/`, `raw/`) |
+| Исследования (локально вне Git) | [`research/INDEX.md`](research/INDEX.md) (`notes/`, `spikes/`, `raw/`) |
 | Автоматизация релиза, пересборка словарей и шрифта, git-хуки | `tools/` (`tools/release.bat`, `tools/release.ps1`) |
 | Метаданные и скриншоты карточки магазина | `src/fastlane/metadata/android/` |
 | Локальные сборки `.apk` (вне Git) | `releases/` |
@@ -64,4 +64,4 @@ Pop-Location
 Любая правка `.kt` или `.xml` считается **готовой**, только когда:
 1. Зелёный прогон `assembleDebug testDebugUnitTest lintDebug --no-daemon` без ошибок и предупреждений компилятора (правка раскладок, жестов, автозаглавной, автозамены или дефолтов сопровождается unit-тестом).
 2. Проверен чек-лист **Doc Drift**: при смене пакетов/файлов обновлён `docs/ARCHITECTURE.md`, при смене правил — `docs/DECISIONS.md` / `docs/features-and-mechanics.md`, при новых граблях — `docs/PITFALLS.md`. Если требуется проверка на телефоне — задача остаётся с маркером `(@)` до подтверждения владельца.
-3. **Ветки и worktree:** папка `tasks/` ведётся строго локально вне Git в основной копии; `AGENTS.md` правится и коммитится только на `main`/`master` в основной копии (защищено `tools/git-hooks/pre-commit`).
+3. **Ветки и worktree:** `tasks/` и `research/` лежат строго локально вне Git; `AGENTS.md` правится только на `main`/`master` в основной копии (`tools/git-hooks/pre-commit`).
