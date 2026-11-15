@@ -43,8 +43,8 @@ android {
         applicationId = "org.chuvash.ktume"
         minSdk = 26 // Поддержка всех телефонов с Android 8.0 и новее
         targetSdk = 37
-        versionCode = 7
-        versionName = "1.6.0"
+        versionCode = 8
+        versionName = "1.6.1"
     }
 
     // В APK для GitHub Releases не вшиваем блок зависимостей, зашифрованный ключом Google (прочитать его

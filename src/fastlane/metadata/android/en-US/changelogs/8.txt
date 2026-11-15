@@ -1,0 +1,1 @@
+- Added 5 keyboard height presets (42 / 46 / 50 / 55 / 60 dp) with matched font sizes in Appearance settings
