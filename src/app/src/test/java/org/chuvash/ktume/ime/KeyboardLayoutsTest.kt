@@ -275,19 +275,59 @@ class KeyboardLayoutsTest {
         assertEquals(19f, inDebug.fontSizeSp, 0.001f)
         assertEquals(4, inDebug.rowsFor(KeyboardLang.CHUVASH, isDebugBuild = true).size)
 
-        // В Release-сборке соты и 5 параметров геометрии приводятся к эталону, а палитра и отступ сохраняются
+        // В Release-сборке соты, скругление и зазоры приводятся к эталону, а высота/шрифт привязываются
+        // к ближайшей из 5 ступеней (62 dp -> EXTRA_TALL 60 dp / 28 sp); палитра и отступ сохраняются
         val inRelease = debugCustomized.sanitizedForBuild(isDebugBuild = false)
         assertFalse(inRelease.hexagonalGrid)
         assertEquals(ChuvashLayoutPreset.BALANCED_26.id, inRelease.chuvashPreset)
-        assertEquals(50f, inRelease.keyHeightDp, 0.001f)
+        assertEquals(60f, inRelease.keyHeightDp, 0.001f)
         assertEquals(14f, inRelease.keyCornerRadiusDp, 0.001f)
         assertEquals(3f, inRelease.keyGapHDp, 0.001f)
         assertEquals(7f, inRelease.keyGapVDp, 0.001f)
-        assertEquals(26f, inRelease.fontSizeSp, 0.001f)
+        assertEquals(28f, inRelease.fontSizeSp, 0.001f)
         assertEquals("sage", inRelease.paletteId)
         assertEquals(34f, inRelease.bottomInsetDp, 0.001f)
         assertEquals(220, inRelease.longPressDelayMs)
         assertEquals(3, inRelease.rowsFor(KeyboardLang.CHUVASH, isDebugBuild = false).size)
+
+        val defaultRelease = KeyboardPreferences().sanitizedForBuild(isDebugBuild = false)
+        assertEquals(50f, defaultRelease.keyHeightDp, 0.001f)
+        assertEquals(26f, defaultRelease.fontSizeSp, 0.001f)
+    }
+
+    @Test
+    fun keyboardHeightPresets_provideFiveCuratedStepsAndSnapInRelease() {
+        val presets = KeyboardHeightPreset.entries
+        assertEquals(listOf(42f, 46f, 50f, 55f, 60f), presets.map { it.keyHeightDp })
+        assertEquals(listOf(22f, 24f, 26f, 27f, 28f), presets.map { it.fontSizeSp })
+
+        val expectedBodyHeights = listOf(245f, 265f, 285f, 310f, 335f)
+        presets.forEachIndexed { idx, preset ->
+            val updated = KeyboardPreferences().withHeightPreset(preset).sanitizedForBuild(isDebugBuild = false)
+            assertEquals(preset.keyHeightDp, updated.keyHeightDp, 0.001f)
+            assertEquals(preset.fontSizeSp, updated.fontSizeSp, 0.001f)
+            assertEquals(preset, updated.activeHeightPreset(isDebugBuild = false))
+            assertEquals(
+                expectedBodyHeights[idx],
+                KeyboardLayouts.computeKeyboardBodyHeightDp(updated, alphaRowCount = 3, isDebugBuild = false),
+                0.001f
+            )
+            val landscape = KeyboardLayouts.resolveEffectiveGeometry(updated, isLandscape = true)
+            assertTrue("Landscape height for ${preset.id} must stay <= 40 dp", landscape.keyHeightDp <= 40f)
+        }
+
+        // Границы ближайшей ступени и равноудалённая точка 52.5 dp (предпочитает эталон 50 dp)
+        assertEquals(KeyboardHeightPreset.EXTRA_COMPACT, KeyboardHeightPreset.nearestTo(38f))
+        assertEquals(KeyboardHeightPreset.COMPACT, KeyboardHeightPreset.nearestTo(44f))
+        assertEquals(KeyboardHeightPreset.NORMAL, KeyboardHeightPreset.nearestTo(48f))
+        assertEquals(KeyboardHeightPreset.NORMAL, KeyboardHeightPreset.nearestTo(52.5f))
+        assertEquals(KeyboardHeightPreset.TALL, KeyboardHeightPreset.nearestTo(57.5f))
+        assertEquals(KeyboardHeightPreset.EXTRA_TALL, KeyboardHeightPreset.nearestTo(64f))
+
+        // В Debug при произвольных ползунках активная ступень не подсвечивается ложно
+        val customDebug = KeyboardPreferences(keyHeightDp = 48f, fontSizeSp = 19f)
+        assertEquals(null, customDebug.activeHeightPreset(isDebugBuild = true))
+        assertEquals(KeyboardHeightPreset.NORMAL, customDebug.activeHeightPreset(isDebugBuild = false))
     }
 
     @Test

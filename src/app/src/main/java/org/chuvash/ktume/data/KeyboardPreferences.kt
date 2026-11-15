@@ -1,6 +1,34 @@
 package org.chuvash.ktume.data
 
+import kotlin.math.abs
 import org.chuvash.ktume.BuildConfig
+
+/**
+ * Готовые ступени высоты клавиатуры (как в Gboard) с подобранным размером шрифта.
+ * В Release-сборке доступны на вкладке «Оформление» вместо свободных ползунков геометрии.
+ */
+enum class KeyboardHeightPreset(
+    val id: String,
+    val title: String,
+    val badge: String,
+    val keyHeightDp: Float,
+    val fontSizeSp: Float
+) {
+    EXTRA_COMPACT(id = "xs", title = "Мини", badge = "Мини", keyHeightDp = 42f, fontSizeSp = 22f),
+    COMPACT(id = "s", title = "Низкая", badge = "Низк.", keyHeightDp = 46f, fontSizeSp = 24f),
+    NORMAL(id = "m", title = "Обычная", badge = "Норм.", keyHeightDp = 50f, fontSizeSp = 26f),
+    TALL(id = "l", title = "Высокая", badge = "Выс.", keyHeightDp = 55f, fontSizeSp = 27f),
+    EXTRA_TALL(id = "xl", title = "Крупная", badge = "Крупн.", keyHeightDp = 60f, fontSizeSp = 28f);
+
+    companion object {
+        /** Ближайшая ступень высоты к [keyHeightDp] (при равной дистанции предпочитает ступень ближе к эталону 50 dp). */
+        fun nearestTo(keyHeightDp: Float): KeyboardHeightPreset =
+            entries.minWith(
+                compareBy<KeyboardHeightPreset> { abs(it.keyHeightDp - keyHeightDp) }
+                    .thenBy { abs(it.keyHeightDp - KeyboardPreferences.DEFAULT_KEY_HEIGHT_DP) }
+            )
+    }
+}
 
 /**
  * МОДУЛЬ: KeyboardPreferences.kt
@@ -60,9 +88,25 @@ data class KeyboardPreferences(
         return saved
     }
 
+    /** Применяет готовую ступень высоты клавиш и соответствующий размер шрифта. */
+    fun withHeightPreset(preset: KeyboardHeightPreset): KeyboardPreferences =
+        copy(keyHeightDp = preset.keyHeightDp, fontSizeSp = preset.fontSizeSp)
+
+    /**
+     * Активная ступень высоты клавиатуры: в Release всегда ближайшая из 5 ступеней,
+     * в Debug — только при точном совпадении высоты и кегля (чтобы ползунки не подсвечивали ступень ложно).
+     */
+    fun activeHeightPreset(isDebugBuild: Boolean = BuildConfig.DEBUG): KeyboardHeightPreset? {
+        if (!isDebugBuild) return KeyboardHeightPreset.nearestTo(keyHeightDp)
+        return KeyboardHeightPreset.entries.firstOrNull {
+            abs(keyHeightDp - it.keyHeightDp) < 0.5f && abs(fontSizeSp - it.fontSizeSp) < 0.5f
+        }
+    }
+
     /**
      * Приводит настройки к ограничениям сборки:
-     * - в Release фиксирует эталонную геометрию клавиш (`50 dp`, `14 dp`, `3 dp`, `7 dp`, `26 sp`) и отключает Hex;
+     * - в Release фиксирует эталонное скругление и зазоры (`14 dp`, `3 dp`, `7 dp`), отключает Hex
+     *   и привязывает высоту/шрифт к ближайшей из 5 ступеней [KeyboardHeightPreset];
      * - в Debug оставляет и соты, и все ползунки геометрии.
      */
     fun sanitizedForBuild(isDebugBuild: Boolean = BuildConfig.DEBUG): KeyboardPreferences {
@@ -70,6 +114,7 @@ data class KeyboardPreferences(
         if (isDebugBuild) {
             return if (resolvedPreset.id == chuvashPreset) this else copy(chuvashPreset = resolvedPreset.id)
         }
+        val heightPreset = KeyboardHeightPreset.nearestTo(keyHeightDp)
         val sanitizedCustomRows = customRowsByLang.mapValues { (lang, rows) ->
             if (rows.size == 4) {
                 if (lang == KeyboardLang.CHUVASH) {
@@ -83,11 +128,11 @@ data class KeyboardPreferences(
         }
         return copy(
             chuvashPreset = resolvedPreset.id,
-            keyHeightDp = DEFAULT_KEY_HEIGHT_DP,
+            keyHeightDp = heightPreset.keyHeightDp,
             keyCornerRadiusDp = DEFAULT_KEY_CORNER_RADIUS_DP,
             keyGapHDp = DEFAULT_KEY_GAP_H_DP,
             keyGapVDp = DEFAULT_KEY_GAP_V_DP,
-            fontSizeSp = DEFAULT_FONT_SIZE_SP,
+            fontSizeSp = heightPreset.fontSizeSp,
             hexagonalGrid = false,
             customRowsByLang = sanitizedCustomRows
         )

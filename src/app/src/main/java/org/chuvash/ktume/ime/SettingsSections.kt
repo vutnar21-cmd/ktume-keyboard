@@ -1,16 +1,12 @@
 package org.chuvash.ktume.ime
 
-import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalUriHandler
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlin.math.roundToInt
@@ -93,42 +89,6 @@ internal fun LayoutSettingsSection(
 }
 
 @Composable
-private fun ChuvashPresetOptionCard(
-    preset: ChuvashLayoutPreset,
-    isSelected: Boolean,
-    palette: KeyboardPalette,
-    onClick: () -> Unit
-) {
-    Surface(
-        color = if (isSelected) palette.accentBg.copy(alpha = 0.16f) else palette.boardBg,
-        shape = RoundedCornerShape(12.dp),
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 4.dp)
-            .border(
-                width = if (isSelected) 1.5.dp else 1.dp,
-                color = if (isSelected) palette.accentBg else palette.hintText.copy(alpha = 0.25f),
-                shape = RoundedCornerShape(12.dp)
-            )
-            .clickable(onClick = onClick)
-    ) {
-        Column(modifier = Modifier.padding(12.dp)) {
-            Text(
-                text = preset.title,
-                fontWeight = FontWeight.Bold,
-                fontSize = 13.sp,
-                color = palette.keyText
-            )
-            Text(
-                text = preset.subtitle,
-                fontSize = 11.sp,
-                color = palette.hintText
-            )
-        }
-    }
-}
-
-@Composable
 internal fun AppearanceSettingsSection(
     prefs: KeyboardPreferences,
     palette: KeyboardPalette,
@@ -165,10 +125,16 @@ internal fun AppearanceSettingsSection(
         title = if (BuildConfig.DEBUG) {
             "Геометрия клавиш, шрифт и задержка Long-Press"
         } else {
-            "Ориентация и задержка Long-Press"
+            "Высота клавиатуры, ориентация и Long-Press"
         },
         palette = palette
     ) {
+        KeyboardHeightPresetSelector(
+            prefs = prefs,
+            palette = palette,
+            onSelectPreset = { preset -> savePrefs(prefs.withHeightPreset(preset)) }
+        )
+        Spacer(modifier = Modifier.height(6.dp))
         SettingToggleRow(
             title = "Компактный режим в альбомной ориентации",
             subtitle = "Автоматически уменьшает высоту рядов и шрифт при горизонтальном повороте экрана (не меняя книжные настройки)",
